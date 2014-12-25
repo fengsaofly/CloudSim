@@ -55,11 +55,11 @@ public class myHost extends PowerHost implements Runnable{
 			List<? extends Pe> peList, VmScheduler vmScheduler,PowerModel powerModel) {
 		super(id, ramProvisioner, bwProvisioner, storage, peList, vmScheduler, powerModel);
 
-
-		vmTotalConfigs = new ArrayList<int[]>();
-		vmTotalConfigs.add(new int[]{2,0,0});
-		vmTotalConfigs.add(new int[]{0,1,1}); 		
-		vmTotalConfigs.add(new int[]{1,0,1});
+//
+//		vmTotalConfigs = new ArrayList<int[]>();
+//		vmTotalConfigs.add(new int[]{2,0,0});
+//		vmTotalConfigs.add(new int[]{0,1,1}); 		
+//		vmTotalConfigs.add(new int[]{1,0,1});
 		
 		curVmAvailableConfig = new ArrayList<int[]>(vmTotalConfigs.size());
 		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
