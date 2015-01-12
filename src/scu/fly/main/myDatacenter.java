@@ -6,6 +6,7 @@ import java.util.List;
 import javax.swing.plaf.SliderUI;
 
 import org.cloudbus.cloudsim.Cloudlet;
+import org.cloudbus.cloudsim.CloudletScheduler;
 import org.cloudbus.cloudsim.Datacenter;
 import org.cloudbus.cloudsim.DatacenterCharacteristics;
 import org.cloudbus.cloudsim.Host;
@@ -220,6 +221,101 @@ public class myDatacenter extends Datacenter implements MyCallInterface
 			return true;
 		return false;
 	}
+	@Override
+	/**
+	 * Processes a Cloudlet submission.
+	 * 
+	 * @param ev a SimEvent object
+	 * @param ack an acknowledgement
+	 * @pre ev != null
+	 * @post $none
+	 */
+	protected void processCloudletSubmit(SimEvent ev, boolean ack) {
+		updateCloudletProcessing();
+
+		try {
+			// gets the Cloudlet object
+			woCloudlet cl = (woCloudlet) ev.getData();
+			int vmID = cl.getVmId();
+
+
+			
+			// checks whether this Cloudlet has finished or not
+			if (cl.isFinished()) {
+				String name = CloudSim.getEntityName(cl.getUserId());
+				Log.printLine(getName() + ": Warning - Cloudlet #" + cl.getCloudletId() + " owned by " + name
+						+ " is already completed/finished.");
+				Log.printLine("Therefore, it is not being executed again");
+				Log.printLine();
+
+				// NOTE: If a Cloudlet has finished, then it won't be processed.
+				// So, if ack is required, this method sends back a result.
+				// If ack is not required, this method don't send back a result.
+				// Hence, this might cause CloudSim to be hanged since waiting
+				// for this Cloudlet back.
+				if (ack) {
+					int[] data = new int[3];
+					data[0] = getId();
+					data[1] = cl.getCloudletId();
+					data[2] = CloudSimTags.FALSE;
+
+					// unique tag = operation tag
+					int tag = CloudSimTags.CLOUDLET_SUBMIT_ACK;
+					sendNow(cl.getUserId(), tag, data);
+				}
+
+				sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN, cl);
+
+				return;
+			}
+
+			// process this Cloudlet to this CloudResource
+			cl.setResourceParameter(getId(), getCharacteristics().getCostPerSecond(), getCharacteristics()
+					.getCostPerBw());
+
+			int userId = cl.getUserId();
+			int vmId = cl.getVmId();
+
+			// time to transfer the files
+			double fileTransferTime = predictFileTransferTime(cl.getRequiredFiles());
+
+			Host host = getVmAllocationPolicy().getHost(vmId, userId);
+			Vm vm = host.getVm(vmId, userId);
+			CloudletScheduler scheduler = vm.getCloudletScheduler();
+			double estimatedFinishTime = scheduler.cloudletSubmit(cl, fileTransferTime);
+
+			//设置cloudlet的Host
+			if(cl.getHostID()==-1)
+				cl.setHostID(host.getId());
+			
+			// if this cloudlet is in the exec queue
+			if (estimatedFinishTime > 0.0 && !Double.isInfinite(estimatedFinishTime)) {
+				estimatedFinishTime += fileTransferTime;
+				send(getId(), estimatedFinishTime, CloudSimTags.VM_DATACENTER_EVENT);
+			}
+
+			if (ack) {
+				int[] data = new int[3];
+				data[0] = getId();
+				data[1] = cl.getCloudletId();
+				data[2] = CloudSimTags.TRUE;
+
+				// unique tag = operation tag
+				int tag = CloudSimTags.CLOUDLET_SUBMIT_ACK;
+				sendNow(cl.getUserId(), tag, data);
+			}
+		} catch (ClassCastException c) {
+			Log.printLine(getName() + ".processCloudletSubmit(): " + "ClassCastException error.");
+			c.printStackTrace();
+		} catch (Exception e) {
+			Log.printLine(getName() + ".processCloudletSubmit(): " + "Exception error.");
+			e.printStackTrace();
+		}
+
+		checkCloudletCompletion();
+	}
+
+	
 	@Override
 	/**
 	 * Process the event for an User/Broker who wants to destroy a VM previously created in this

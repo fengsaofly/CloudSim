@@ -43,9 +43,9 @@ public class VmAllocationPolicyRandom extends VmAllocationPolicySimple {
 				
 
 				if (result) { // if vm were succesfully created in the host
-					getVmTable().put(vm.getUid(), host);
-					getUsedPes().put(vm.getUid(), requiredPes);
-					getFreePes().set(idx, getFreePes().get(idx) - requiredPes);
+//					getVmTable().put(vm.getUid(), host);
+//					getUsedPes().put(vm.getUid(), requiredPes);
+//					getFreePes().set(idx, getFreePes().get(idx) - requiredPes);
 					double usedPes = 0;
 					for (Vm curVM : host.getVmList()) {
 						usedPes+=curVM.getNumberOfPes();

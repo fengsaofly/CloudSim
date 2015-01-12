@@ -4,7 +4,7 @@ import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Vm;
 
 
-public class myVm extends Vm {
+public class myVm extends Vm implements Cloneable{
 	
 	private int vmType;
 	private int hostID = -1;//用于标明VM所属的主机ID
@@ -55,7 +55,7 @@ public class myVm extends Vm {
 	public int getVmType(){
 		return this.vmType;
 	}
-	public myVm clone(){
+	public myVm clone() throws CloneNotSupportedException {
 		return  new myVm(getId(), getUserId(), getMips(), getNumberOfPes(), getRam(), getBw(), getSize(), 
 								getVmm(), getCloudletScheduler(), vmType);
 		

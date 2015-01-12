@@ -40,9 +40,9 @@ public class VmAllocationPolicyRoundRobin extends VmAllocationPolicySimple {
 				
 
 				if (result) { // if vm were succesfully created in the host
-					getVmTable().put(vm.getUid(), host);
-					getUsedPes().put(vm.getUid(), requiredPes);
-					getFreePes().set(host.getId(), getFreePes().get(host.getId()) - requiredPes);
+//					getVmTable().put(vm.getUid(), host);
+//					getUsedPes().put(vm.getUid(), requiredPes);
+//					getFreePes().set(host.getId(), getFreePes().get(host.getId()) - requiredPes);
 					//记录cpu与mem使用率
 					
 					double usedPes = 0;

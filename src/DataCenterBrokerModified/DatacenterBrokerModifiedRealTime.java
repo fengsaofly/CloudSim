@@ -119,7 +119,7 @@ public final class DatacenterBrokerModifiedRealTime extends SimEntity {
     int vmInd = 0, startTime = 0;
     volatile int presentTime = 0;//当前时间
     boolean sort = false;
-    final int TimeUnit = 10; // means 100 milliSecs = 1 time unit
+    final int TimeUnit = 10; // means 100 milliSecs = 1 time unit，时间单位为1s
     Timer updatePresentTime;
     
     Cloudlet pop() {

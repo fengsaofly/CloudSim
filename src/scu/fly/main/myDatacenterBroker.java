@@ -9,6 +9,7 @@ import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEvent;
+import org.cloudbus.cloudsim.lists.CloudletList;
 import org.cloudbus.cloudsim.lists.VmList;
 
 
@@ -18,6 +19,14 @@ public class myDatacenterBroker extends DatacenterBroker {
 		super(name);
 		// TODO Auto-generated constructor stub
 	}
+
+	@Override
+	public void bindCloudletToVm(int cloudletId, int vmId) {
+		woCloudlet cloudlet = (woCloudlet)CloudletList.getById(getCloudletList(), cloudletId);
+		cloudlet.setVmId(vmId);
+		myVm myVm = (myVm)getVmList().get(vmId);
+		cloudlet.setVmType(myVm.getVmType());
+	}
 	@Override
 	/**
 	 * Process the ack received due to a request for VM creation.
@@ -26,7 +35,6 @@ public class myDatacenterBroker extends DatacenterBroker {
 	 * @pre ev != null
 	 * @post $none
 	 */
-	
 	protected void processVmCreate(SimEvent ev) {
 		
 		int[] data = (int[]) ev.getData();

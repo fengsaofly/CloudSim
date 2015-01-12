@@ -5,11 +5,28 @@ import org.cloudbus.cloudsim.UtilizationModel;
 import org.cloudbus.cloudsim.Cloudlet;
 
 
-public class woCloudlet extends Cloudlet {
+public class woCloudlet extends Cloudlet implements Cloneable{
 	
 	private double waitTime;
-	private double submitTime;
+	private int hostID = -1;
+	private int vmType = -1;
 	
+	public int getVmType() {
+		return vmType;
+	}
+
+	public void setVmType(int vmType) {
+		this.vmType = vmType;
+	}
+
+	public int getHostID() {
+		return hostID;
+	}
+
+	public void setHostID(int hostID) {
+		this.hostID = hostID;
+	}
+
 	public woCloudlet(
 			int cloudletId, 
 			long cloudletLength, 
@@ -35,6 +52,16 @@ public class woCloudlet extends Cloudlet {
 	public double getWaitTime(){
 		return waitTime;
 	}
-
+   @Override
+    public woCloudlet clone() throws CloneNotSupportedException {
+	 
+	   	woCloudlet cloudlet = new woCloudlet(getCloudletId(), getCloudletLength(), getNumberOfPes(),getCloudletFileSize() 
+        		,getCloudletOutputSize() ,getUtilizationModelCpu() , getUtilizationModelRam(), getUtilizationModelBw());
+	   	
+	   	cloudlet.setUserId(this.getUserId());
+        return cloudlet;
+        
+        
+    }
 
 }
