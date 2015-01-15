@@ -510,6 +510,7 @@ public final class DatacenterBrokerModifiedRealTime extends SimEntity {
         for (Cloudlet cloudlet : getCloudletSubmittedList()) {
             getCloudletList().remove(cloudlet);
         }
+        getCloudletSubmittedList().clear();
     }
 
     /**

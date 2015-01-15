@@ -87,10 +87,11 @@ public class MyCloudSim extends CloudSim {
 				ent.run();
 			}
 			if (ent.getClass().getName()
-					.equals("scu.fly.main.myDatacenterBroker")
+					.contains("Broker")
 					&& ent.getState() == SimEntity.FINISHED) {
 				printMessage("得到datacenterBroker任务完成的消息！");
 				queue_empty = true;
+				break;
 				// return queue_empty;
 			}
 		}

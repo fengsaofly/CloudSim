@@ -14,6 +14,7 @@ import org.cloudbus.cloudsim.Log;
 import org.cloudbus.cloudsim.Pe;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmScheduler;
+import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.lists.VmList;
 import org.cloudbus.cloudsim.power.PowerHost;
 import org.cloudbus.cloudsim.power.models.PowerModel;
@@ -52,6 +53,7 @@ public class myHost extends PowerHost implements Runnable {
 
 	public static ArrayList<ArrayList> cpuValuesList;
 	public static ArrayList<ArrayList> memValuesList;
+	public static ArrayList<ArrayList> timeValuesList;
 	public static ArrayList<Double> sysUtilizationValues;
 	
 	public  double IR = 0;
@@ -89,6 +91,13 @@ public class myHost extends PowerHost implements Runnable {
 			cpuValuesList = new ArrayList<ArrayList>();
 			for (int i = 0; i < 100; i++) {
 				cpuValuesList.add(new ArrayList());
+			}
+		}
+		
+		if (timeValuesList == null || timeValuesList.size() == 0) {
+			timeValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 101; i++) {
+				timeValuesList.add(new ArrayList());
 			}
 		}
 		if (memValuesList == null || memValuesList.size() == 0) {
@@ -248,7 +257,7 @@ public class myHost extends PowerHost implements Runnable {
 	}
 
 	public static synchronized void sendMsgToDC(myVm vm) {
-		Log.printLine("-----创建vm" + vm.getId() + "成功-------");
+//		Log.printLine("-----创建vm" + vm.getId() + "成功-------");
 		getMc().getVmExcuteThread().setCurCreatedVm(vm);
 		getMc().getVmExcuteThread().run();
 	}
@@ -371,11 +380,26 @@ public class myHost extends PowerHost implements Runnable {
 			return false;
 		}
 	}
+	public boolean wqEmpty()
+	{
+		for(int q : getCurQueueLenList())
+		{
+			if(q!=0) return false;
+		}
+		return true;
+	}
+
 
 	@Override
 	// 将vm从等待队列放入PM
 	public boolean vmCreate(Vm vm) {
-		return super.vmCreate(vm);
+		
+		if(canCreate(vm))
+			return super.vmCreate(vm);
+		
+		return  false;
+		
+		
 	}
 
 	public boolean getConfigFromMySchedulingAlgorithm() {
@@ -508,7 +532,12 @@ public class myHost extends PowerHost implements Runnable {
 	}
 
 	public boolean getConfigFroMIUS() {
-
+		
+//		curQueueLenList.set(0, 1);
+//		curQueueLenList.set(1, 1);
+//		curQueueLenList.set(2, 1);
+//		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
+		
 		double maxWeight = Integer.MIN_VALUE;
 		int[] chosenConfig = new int[] { 0, 0, 0 };
 		for (int[] curAvailableConfig : curVmAvailableConfig) {
@@ -525,8 +554,7 @@ public class myHost extends PowerHost implements Runnable {
 			}
 		}
 		for (int i = 0; i < chosenConfig.length; i++) {
-			chosenConfig[i] = Math.min(chosenConfig[i], waitVmsQueue.get(i)
-					.size());
+			chosenConfig[i] = Math.min(chosenConfig[i], curQueueLenList.get(i));
 		}
 		double WeightCPU = 0, WeightMEM = 0;
 		for (int i = 0; i < chosenConfig.length; i++) {
@@ -543,15 +571,27 @@ public class myHost extends PowerHost implements Runnable {
 			WeightCPU += vm.getNumberOfPes();
 			WeightMEM += vm.getRam();
 		}
+		
+		Log.printLine("chosenConfig = " + printArray(chosenConfig));
+		
+		
 		double cpuShare = WeightCPU / this.getNumberOfPes();
 		double memShare = WeightMEM / this.getRam();// GB->MB
 		double sysShare = (cpuShare + memShare) / 2.0;
-		Log.printLine("other:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
+		
+		double now = CloudSim.clock();
+		
+		Log.printLine(now+"--- MIUS:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
 				+ ",mem利用率为：" + memShare + "综合利用率为：" + sysShare);
 		curSynUtilization2 = sysShare;
+		
+		
+		
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
-
+		timeValuesList.get(getId()).add(now);
+		
+		
 		curChosenQueue.clear();
 
 		for (int vmType = 0; vmType < chosenConfig.length; vmType++) {
@@ -565,7 +605,7 @@ public class myHost extends PowerHost implements Runnable {
 			}
 		}
 
-		Log.printLine("chosenConfig = " + printArray(chosenConfig));
+		
 
 		return true;
 	}
@@ -632,7 +672,7 @@ public class myHost extends PowerHost implements Runnable {
 		curSynUtilization2 = sysShare;
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
-
+		timeValuesList.get(getId()).add(CloudSim.clock());
 		curChosenQueue.clear();
 
 		for (int vmType = 0; vmType < chosenConfig.length; vmType++) {
@@ -817,18 +857,74 @@ public class myHost extends PowerHost implements Runnable {
 		myHost.mc = mc;
 	}
 	
+	public boolean canRun()
+	{
+		int [] b = MathUtil.listToArray(curQueueLenList) ;
+		//没有等待任务
+		if(b.equals(new int[]{0,0,0}))
+		{
+			return false;
+		}
+		boolean canRun = false;
+		for (int i = 0; i < curVmAvailableConfig.size(); i++) {
+			int [] a = curVmAvailableConfig.get(i) ;
+			
+			if(MathUtil.canHold(a, b)){
+				canRun = true;break;
+			}
+		}
+		return canRun;
+		
+	}
 	public boolean canCreate(Vm vm)
 	{
+		int usedPes = 0;
+		for (Vm myvm : getVmList()) {
+			usedPes+=myvm.getNumberOfPes();
+		}
+		
+		if (getStorage() < vm.getSize()) {
+			return false;
+		}
+
 		if (!getRamProvisioner().allocateRamForVm(vm, vm.getCurrentRequestedRam())) {
 			return false;
 		}
+
 		if (!getBwProvisioner().allocateBwForVm(vm, vm.getCurrentRequestedBw())) {
+			getRamProvisioner().deallocateRamForVm(vm);
 			return false;
 		}
-		if (!getVmScheduler().allocatePesForVm(vm, vm.getCurrentRequestedMips())) {
+
+		if ( ( !getVmScheduler().allocatePesForVm(vm, vm.getCurrentRequestedMips()) ) || 
+						(getNumberOfPes()-usedPes)<vm.getNumberOfPes() ) {
+			getRamProvisioner().deallocateRamForVm(vm);
+			getBwProvisioner().deallocateBwForVm(vm);
 			return false;
 		}
 		return true;
+	}
+
+	public static void clearRecords() {
+		// TODO Auto-generated method stub
+		if(cpuValuesList!=null)
+		{
+			for (List<Double> list : cpuValuesList) {
+				list.clear();
+			}
+		}
+		if(memValuesList!=null)
+		{
+			for (List<Double> list : memValuesList) {
+				list.clear();
+			}
+		}
+		if(timeValuesList!=null)
+		{
+			for (List<Double> list : timeValuesList) {
+				list.clear();
+			}
+		}
 	}
 
 }

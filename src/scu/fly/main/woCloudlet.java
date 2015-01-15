@@ -9,14 +9,33 @@ public class woCloudlet extends Cloudlet implements Cloneable{
 	
 	private double waitTime;
 	private int hostID = -1;
+	private myVm vm = null;
 	private int vmType = -1;
+	
+	private int submitTime = -1;
+	
+	public int getSubmitTime() {
+		return submitTime;
+	}
+
+	public void setSubmitTime(int submitTime) {
+		this.submitTime = submitTime;
+	}
+
+	public myVm getVm() {
+		return vm;
+	}
+	
+	public void setVm(myVm vm) {
+		this.vm = vm;
+	}
 	
 	public int getVmType() {
 		return vmType;
 	}
-
-	public void setVmType(int vmType) {
-		this.vmType = vmType;
+	
+	public void setVmType(int vmT) {
+		this.vmType = vmT;
 	}
 
 	public int getHostID() {

@@ -6,6 +6,7 @@ import java.util.List;
 import org.cloudbus.cloudsim.Host;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmAllocationPolicySimple;
+import org.cloudbus.cloudsim.core.CloudSim;
 
 public class VmAllocationPolicyRoundRobin extends VmAllocationPolicySimple {
 	
@@ -35,39 +36,30 @@ public class VmAllocationPolicyRoundRobin extends VmAllocationPolicySimple {
 				host = (myHost)getHostList().get(tries);
 				if(host != null)
 					result = host.vmCreate(vm);
-				
-				
-				
+
 
 				if (result) { // if vm were succesfully created in the host
-//					getVmTable().put(vm.getUid(), host);
-//					getUsedPes().put(vm.getUid(), requiredPes);
-//					getFreePes().set(host.getId(), getFreePes().get(host.getId()) - requiredPes);
-					//记录cpu与mem使用率
-					
+
 					double usedPes = 0;
 					for (Vm curVM : host.getVmList()) {
 						usedPes+=curVM.getNumberOfPes();
 					}
+					int idx = host.getId();
 					double cpuUtilization = usedPes/host.getNumberOfPes()*1.0;
-					double memUtilization = (host.getRamProvisioner().getAvailableRam() *1.0) / host.getRam() *1.0;
+					double memUtilization = (host.getRam()-host.getRamProvisioner().getAvailableRam() *1.0) / host.getRam() *1.0;
+					
 					myHost.cpuValuesList.get(host.getId()).add(cpuUtilization);
 					myHost.memValuesList.get(host.getId()).add(memUtilization);
+					myHost.timeValuesList.get(host.getId()).add(CloudSim.clock());
 					
 					myHost.sendMsgToDC((myVm)vm);
 					
-					result = true;
 					break;
 				} else {
 					freePesTmp.set(host.getId(), Integer.MIN_VALUE);
 				}
 				tries++;
 			} while (!result && tries < getFreePes().size());
-			//没有创建成功
-			if(!result)
-			{
-				needCreateVMs.add((myVm)vm);
-			}
 
 		}
 
@@ -77,26 +69,13 @@ public class VmAllocationPolicyRoundRobin extends VmAllocationPolicySimple {
 	public void deallocateHostForVm(Vm vm) {
 	
 		myHost host = (myHost)getVmTable().remove(vm.getUid());
-//		int id = getHostList().indexOf(host);
-//		int pes = getUsedPes().remove(vm.getUid());
-		if (host != null) {
-			host.vmDestroy(vm);
-//			getFreePes().set(id, getFreePes().get(id) + pes);
-		}
+		int id = getHostList().indexOf(host);
+		int pes = getUsedPes().remove(vm.getUid());
 		
-		ArrayList<myVm> createdVMs =new ArrayList<myVm>();
-		
-		for (myVm myVm : needCreateVMs) {
-			if(allocateHostForVm(myVm,host)){
-				myHost.sendMsgToDC(myVm);
-				createdVMs.add(myVm);
+		host.vmDestroy(vm);
+		getFreePes().set(id, getFreePes().get(id) + pes);
 
-			}
-		}
-		for (myVm myVm : createdVMs) {
-			if(needCreateVMs.contains(myVm))
-				needCreateVMs.remove(myVm);
-		}
+		
 
 	}
 
