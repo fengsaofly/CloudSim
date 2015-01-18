@@ -98,6 +98,7 @@ public class PowerDatacenter extends Datacenter {
 
 			double minTime = updateCloudetProcessingWithoutSchedulingFutureEventsForce();
 
+			//迁移vm
 			if (!isDisableMigrations()) {
 				List<Map<String, Object>> migrationMap = getVmAllocationPolicy().optimizeAllocation(
 						getVmList());

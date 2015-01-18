@@ -297,15 +297,15 @@ public class myHost extends PowerHost implements Runnable {
 		switch (scheduleMethod) {
 		case 0:
 			successGetConfig = getConfigFromMySchedulingAlgorithm();
-			finalWQ = new ArrayList<List<myVm>>(waitVmsQueue);
-			finalCQ = new ArrayList<myVm>(curChosenQueue);
-			waitVmsQueue = new ArrayList<List<myVm>>(waitVmsQueue1);
-			curChosenQueue = new ArrayList<myVm>(curChosenQueue1);
-			getConfigFromStochasticSchedulingAlgorithm();
-
-			waitVmsQueue = finalWQ;
-			curChosenQueue = finalCQ;
-			compareMethod();
+//			finalWQ = new ArrayList<List<myVm>>(waitVmsQueue);
+//			finalCQ = new ArrayList<myVm>(curChosenQueue);
+//			waitVmsQueue = new ArrayList<List<myVm>>(waitVmsQueue1);
+//			curChosenQueue = new ArrayList<myVm>(curChosenQueue1);
+//			getConfigFromStochasticSchedulingAlgorithm();
+//
+//			waitVmsQueue = finalWQ;
+//			curChosenQueue = finalCQ;
+//			compareMethod();
 			break;
 		case 1:
 			successGetConfig = getConfigFromStochasticSchedulingAlgorithm();
@@ -494,7 +494,7 @@ public class myHost extends PowerHost implements Runnable {
 
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
-
+		timeValuesList.get(getId()).add(CloudSim.clock());
 		// 若chosenConfig不为空，则根据配置进行VM选择
 		curChosenQueue.clear();
 
@@ -859,17 +859,17 @@ public class myHost extends PowerHost implements Runnable {
 	
 	public boolean canRun()
 	{
-		int [] b = MathUtil.listToArray(curQueueLenList) ;
+		int [] waitQList = MathUtil.listToArray(curQueueLenList) ;
 		//没有等待任务
-		if(b.equals(new int[]{0,0,0}))
+		if(waitQList.equals(new int[]{0,0,0}))
 		{
 			return false;
 		}
 		boolean canRun = false;
 		for (int i = 0; i < curVmAvailableConfig.size(); i++) {
-			int [] a = curVmAvailableConfig.get(i) ;
+			int [] oneConfig = curVmAvailableConfig.get(i) ;
 			
-			if(MathUtil.canHold(a, b)){
+			if(MathUtil.canHold(oneConfig, waitQList)){
 				canRun = true;break;
 			}
 		}
@@ -878,28 +878,27 @@ public class myHost extends PowerHost implements Runnable {
 	}
 	public boolean canCreate(Vm vm)
 	{
-		int usedPes = 0;
-		for (Vm myvm : getVmList()) {
-			usedPes+=myvm.getNumberOfPes();
-		}
+		
+//		int usedPes = 0;
+//		for (Vm myvm : getVmList()) {
+//			usedPes+=myvm.getNumberOfPes();
+//		}
 		
 		if (getStorage() < vm.getSize()) {
 			return false;
 		}
 
-		if (!getRamProvisioner().allocateRamForVm(vm, vm.getCurrentRequestedRam())) {
+		if (getRamProvisioner().getAvailableRam() < vm.getCurrentRequestedRam()) {
 			return false;
 		}
 
-		if (!getBwProvisioner().allocateBwForVm(vm, vm.getCurrentRequestedBw())) {
-			getRamProvisioner().deallocateRamForVm(vm);
+		if (getBwProvisioner().getAvailableBw()<vm.getCurrentRequestedBw()) {
 			return false;
 		}
 
-		if ( ( !getVmScheduler().allocatePesForVm(vm, vm.getCurrentRequestedMips()) ) || 
-						(getNumberOfPes()-usedPes)<vm.getNumberOfPes() ) {
-			getRamProvisioner().deallocateRamForVm(vm);
-			getBwProvisioner().deallocateBwForVm(vm);
+//		if ( getVmScheduler().getAvailableMips() < vm.getCurrentRequestedTotalMips()|| 
+//						(getNumberOfPes()-usedPes)<vm.getNumberOfPes() ) {
+		if(getVmScheduler().getAvailableMips() < vm.getCurrentRequestedTotalMips()){
 			return false;
 		}
 		return true;

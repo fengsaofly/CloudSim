@@ -14,6 +14,7 @@ import org.cloudbus.cloudsim.VmAllocationPolicy;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.power.PowerDatacenter;
 import org.cloudbus.cloudsim.power.PowerHost;
+import org.cloudbus.cloudsim.power.PowerVmAllocationPolicyFly;
 import org.cloudbus.cloudsim.power.PowerVmAllocationPolicyMigrationAbstract;
 import org.cloudbus.cloudsim.power.PowerVmAllocationPolicyMigrationInterQuartileRange;
 import org.cloudbus.cloudsim.power.PowerVmAllocationPolicyMigrationLocalRegression;
@@ -164,12 +165,12 @@ public abstract class RunnerAbstract {
 					hostList,
 					vmAllocationPolicy);
 
-			datacenter.setDisableMigrations(false);
+			datacenter.setDisableMigrations(false);//设置不迁移
 
 			broker.submitVmList(vmList);
 			broker.submitCloudletList(cloudletList);
 
-			CloudSim.terminateSimulation(Constants.SIMULATION_LIMIT);
+			CloudSim.terminateSimulation(Constants.SIMULATION_LIMIT);//设置终止时间
 			double lastClock = CloudSim.startSimulation();
 
 			List<Cloudlet> newList = broker.getCloudletReceivedList();
@@ -285,7 +286,13 @@ public abstract class RunnerAbstract {
 					parameter);
 		} else if (vmAllocationPolicyName.equals("dvfs")) {
 			vmAllocationPolicy = new PowerVmAllocationPolicySimple(hostList);
-		} else {
+		} 
+		//fly added
+		else if(vmAllocationPolicyName.equals("fly"))
+		{
+			vmAllocationPolicy = new PowerVmAllocationPolicyFly(hostList);
+		}
+			else {
 			System.out.println("Unknown VM allocation policy: " + vmAllocationPolicyName);
 			System.exit(0);
 		}

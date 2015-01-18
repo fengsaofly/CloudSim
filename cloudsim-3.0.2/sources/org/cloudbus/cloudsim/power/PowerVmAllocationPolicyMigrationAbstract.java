@@ -218,6 +218,7 @@ public abstract class PowerVmAllocationPolicyMigrationAbstract extends PowerVmAl
 				continue;
 			}
 			if (host.isSuitableForVm(vm)) {
+				//如果分配之后，超过阈值，则取消分配
 				if (getUtilizationOfCpuMips(host) != 0 && isHostOverUtilizedAfterAllocation(host, vm)) {
 					continue;
 				}

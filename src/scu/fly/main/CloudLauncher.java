@@ -12,6 +12,8 @@ import java.io.IOException;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,7 +62,7 @@ public class CloudLauncher {
 	// 物理机配置(cpu,mem,storage)
 	public static int MCS[] = { 30, 30, 4000 * UNIT };// mem:30GB cpu:30GHz
 														// storage:4000GB
-	public static int HOSTNUM = 10;
+	public static int HOSTNUM = 100;
 	public static int vmId = 0;
 	// public static int curVmId = 0;
 	public static int mutiples = 1;
@@ -69,7 +71,11 @@ public class CloudLauncher {
 	public static int WriteNums = 20;
 	public static Date StartTime = new Date();
 	public static boolean hasCloudlet = false;//判断是否有任务
-	public static int  CloudletsCount = 1;
+	public static int  CloudletsCount = 10;
+	public static int usedHosts = 0;
+	public static double energy = 0;
+	public static double A = 333.21;
+	public static double B = 86.495;
 	
 	/** The cloudlet list. */
 	private static CopyOnWriteArrayList<woCloudlet> cloudletList = new CopyOnWriteArrayList<woCloudlet>();
@@ -120,8 +126,8 @@ public class CloudLauncher {
 			storageSize = 1690;
 			break;
 		case 1:
-			memSize = 17.1;
-			cpuSize = 6.5;
+			memSize = 17;
+			cpuSize = 6;
 			storageSize = 420;
 			break;
 		case 2:
@@ -158,31 +164,31 @@ public class CloudLauncher {
 		}
 	}
 
-	private static List<woCloudlet> createCloudlet(int userId, int cloudlets,
-			int idShift) {
-		// Creates a container to store Cloudlets
-		LinkedList<woCloudlet> list = new LinkedList<woCloudlet>();
-
-		// cloudlet parameters
-		long length = 40000;
-		long fileSize = 50;
-		long outputSize = 50;
-		int pesNumber = 1;
-		UtilizationModel utilizationModel = new UtilizationModelFull();
-
-		woCloudlet[] cloudlet = new woCloudlet[cloudlets];
-
-		for (int i = 0; i < cloudlets; i++) {
-			cloudlet[i] = new woCloudlet(idShift + i, length, pesNumber,
-					fileSize, outputSize, utilizationModel, utilizationModel,
-					utilizationModel);
-			// setting the owner of these Cloudlets
-			cloudlet[i].setUserId(userId);
-			list.add(cloudlet[i]);
-		}
-
-		return list;
-	}
+//	private static List<woCloudlet> createCloudlet(int userId, int cloudlets,
+//			int idShift) {
+//		// Creates a container to store Cloudlets
+//		LinkedList<woCloudlet> list = new LinkedList<woCloudlet>();
+//
+//		// cloudlet parameters
+//		long length = 40000;
+//		long fileSize = 50;
+//		long outputSize = 50;
+//		int pesNumber = 1;
+//		UtilizationModel utilizationModel = new UtilizationModelFull();
+//
+//		woCloudlet[] cloudlet = new woCloudlet[cloudlets];
+//
+//		for (int i = 0; i < cloudlets; i++) {
+//			cloudlet[i] = new woCloudlet(idShift + i, length, pesNumber,
+//					fileSize, outputSize, utilizationModel, utilizationModel,
+//					utilizationModel);
+//			// setting the owner of these Cloudlets
+//			cloudlet[i].setUserId(userId);
+//			list.add(cloudlet[i]);
+//		}
+//
+//		return list;
+//	}
 
 	private static List<woCloudlet> createCloudlet(int userId, int cloudlets,
 			int idShift, int size, int type) {
@@ -190,7 +196,7 @@ public class CloudLauncher {
 		LinkedList<woCloudlet> list = new LinkedList<woCloudlet>();
 
 		// cloudlet parameters
-		long length = 40000 * size;
+		long length = 4000 * size;
 		long fileSize = 50;
 		long outputSize = 50;
 		int pesNumber = 1;
@@ -236,64 +242,52 @@ public class CloudLauncher {
 		double rand = Math.random();
 		int randSize;
 		if (rand < 0.7)
-			randSize = random(1, 50);
+			randSize = random(10, 50);
 		else if (rand > 0.85)
 			randSize = random(451, 500);
 		else
 			randSize = random(251, 300);
 		return randSize;
 	}
-
-	private static ArrayList<List<Integer>> randGenerateVmsAndCloudlets() {
+	private static void generateStableVmsAndCloudlets(int size) {
 		vmlist.clear();
 		cloudletList.clear();
+		
+		int[] lengthArray = {40,10,120,120,160,160,1920,540,1120,1040};
 
-		double[] config = { 1, (double) 1 / 3, (double) 2 / 3 };
-		double[] probabilities = new double[3];
-		double arg = 0.5;
-		List<List<Integer>> T = new ArrayList<List<Integer>>();
 
-		ArrayList<Integer> vmlist1 = new ArrayList<Integer>();
-		ArrayList<Integer> vmlist2 = new ArrayList<Integer>();
-		ArrayList<Integer> vmlist3 = new ArrayList<Integer>();
-		T.add(vmlist1);
-		T.add(vmlist2);
-		T.add(vmlist3);
 
-		int userId = broker.getId();
-		// int userId = 0;
+		int userId = 3;
+		if (broker != null)
+			userId = broker.getId();
 
-		double rand = 0;
-		for (int i = 0; i < config.length; i++) {
-			probabilities[i] = config[i] * arg / 130.5 * 100;
+		for (int i = 0; i < size; i++) {
+
+			int randomCloudletSize = lengthArray[i];
+			myVm curVm = createVM(userId, 1, vmId, i%2).get(0);
+			vmlist.add(curVm);
+
+			woCloudlet curCloudlet = createCloudlet(userId, 1, vmId++,
+					randomCloudletSize, i%2).get(0);
+			
+			//绑定VM
+			curCloudlet.setVmId(curVm.getId());
+			curCloudlet.setVmType(curVm.getVmType());
+			curCloudlet.setVm(curVm);
+			
+			
+			cloudletList.add(curCloudlet);
+
+
 		}
-		for (int j = 0; j < HOSTNUM * mutiples; j++) {
-			for (int vmlistId = 0; vmlistId < probabilities.length; vmlistId++) {
-				rand = Math.random();
-				if (rand < probabilities[vmlistId]) {
-					// [countVM[pId].length] = randGenerateCloudletSize();
-					int randomCloudletSize = randGenerateCloudletSize();
-					T.get(vmlistId).add(randomCloudletSize);
-					myVm curVm = createVM(userId, 1, vmId, vmlistId).get(0);
-					vmlist.add(curVm);
-
-					woCloudlet curCloudlet = createCloudlet(userId, 1, vmId++,
-							randomCloudletSize, vmlistId).get(0);
-					cloudletList.add(curCloudlet);
-				}
-
-			}
-			// vmlist.add(new
-			// int[]{randGenerateCloudletSize(),randGenerateCloudletSize(),randGenerateCloudletSize()});
-		}
-
-		return (ArrayList<List<Integer>>) T;
 
 	}
 
 	private static ArrayList<List<Integer>> generateVmsAndCloudlets(int size) {
 		vmlist.clear();
 		cloudletList.clear();
+		
+//		int[] lengthArray = {40,10,120,120,160,160,1920,540,1120,1040};
 
 		double[] config = { 1, (double) 1 / 3, (double) 2 / 3 };
 		double[] probabilities = new double[3];
@@ -385,28 +379,6 @@ public class CloudLauncher {
 	 * @return
 	 */
 	public static Double runOneMethod(String name, int size) {
-		
-		
-		// 拷贝任务与VM
-//		final List<woCloudlet> curCloudletList = new ArrayList<woCloudlet>(
-//				cloudletList.size());
-//		for (woCloudlet woCloudlet : cloudletList) {
-//			try {
-//				curCloudletList.add(woCloudlet.clone());
-//			} catch (CloneNotSupportedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//		}
-//		final List<myVm> curVMList = new ArrayList<myVm>(vmlist.size());
-//		for (myVm vm : vmlist) {
-//			try {
-//				curVMList.add(vm.clone());
-//			} catch (CloneNotSupportedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//		}
 
 		if (name.equals("fly") || name.equals("other")) {
 			int num_user = 1; // number of grid users
@@ -420,7 +392,7 @@ public class CloudLauncher {
 			myHost.setMc((myDatacenter) datacenter0);
 			// 设置调度算法
 			if (name.equals("fly"))
-				myHost.scheduleMethod = 2;
+				myHost.scheduleMethod = 0;
 			else
 				myHost.scheduleMethod = 1;
 			// 云代理
@@ -435,7 +407,8 @@ public class CloudLauncher {
 			}
 			Log.printLine("######有任务出现，启动CloudSim#######");
 			MyCloudSim.startSimulation();
-
+			
+			
 			// Final step: Print results when simulation is over
 			List<woCloudlet> newList = broker.getCloudletReceivedList();
 
@@ -529,6 +502,7 @@ public class CloudLauncher {
 
 		Log.printLine("------共产生"+size+"个任务------");
 		generateVmsAndCloudlets(size);
+//		generateStableVmsAndCloudlets(size);
 		if (cloudletList.size() > 0 && vmlist.size() > 0) {
 			broker.submitVmList(vmlist);
 			broker.submitCloudletList(cloudletList);
@@ -548,20 +522,25 @@ public class CloudLauncher {
 			// First step: Initialize the CloudSim package. It should be called
 			// before creating any entities.
 
-			for (mutiples = 1; mutiples <2; mutiples +=1) {
+			for (mutiples = 2; mutiples <22; mutiples +=2) {
 
 				// Second step: Create Datacenters
 				// Datacenters are the resource providers in CloudSim. We need
 				// at list one of them to run a CloudSim simulation
 
 				// 随机生成任务
-				int size = 210 * mutiples;//30*mutiples
+				int size = 5 * mutiples;
+				int totalSize = size*CloudletsCount;
 				ArrayList<Double> utilizationList = new ArrayList<>();
 				ArrayList<Double> varianceList = new ArrayList<>();
 				ArrayList<Double> avgWaitTimeList = new ArrayList<>();
-				utilizationList.add((double) size*3);
-				avgWaitTimeList.add((double) size*3);
-				varianceList.add((double) size*3);
+				ArrayList<Double> usedHostsList = new ArrayList<>();
+				ArrayList<Double> energyList = new ArrayList<>();
+				utilizationList.add((double) totalSize);
+				avgWaitTimeList.add((double) totalSize);
+				varianceList.add((double) totalSize);
+				usedHostsList.add((double) totalSize);
+				energyList.add((double) totalSize);
 				// broker = createBroker("Broker_0", "fly");
 
 				
@@ -575,8 +554,9 @@ public class CloudLauncher {
 
 					utilizationList.add(utilization);
 					varianceList.add(variance);
-					avgWaitTimeList.add(averageWaitingTime/(3*size));
-
+					avgWaitTimeList.add(averageWaitingTime/totalSize);
+					usedHostsList.add((double)usedHosts);
+					energyList.add(energy);
 				}
 
 				double sys = 0.0;
@@ -594,6 +574,10 @@ public class CloudLauncher {
 					excelWrite.setCurRow(6);
 					excelWrite.writeColumn(varianceList, false);
 					excelWrite.setCurRow(12);
+					excelWrite.writeColumn(usedHostsList, false);
+					excelWrite.setCurRow(18);
+					excelWrite.writeColumn(energyList, false);
+					excelWrite.setCurRow(24);
 					excelWrite.writeColumn(avgWaitTimeList, true);
 				} catch (WriteException | IOException e) {
 					// TODO Auto-generated catch block
@@ -745,17 +729,16 @@ public class CloudLauncher {
 		try {
 			if (policy.equals("fly") || policy.equals("other"))
 				broker = new myDatacenterBroker(name);
-			else if (policy.equals("rr") || policy.equals("random"))
-				broker = new SimpleDatacenterBroker(name);
+			else if (policy.equals("rr") || policy.equals("random") ||  policy.equals("li") )
+				broker = new DatacenterBrokerSimple(name);
 			else
-				broker = new SimpleDatacenterBroker(name);
+				broker = new DatacenterBrokerSimple(name);
 		} catch (Exception e) {
 			e.printStackTrace();
 			return null;
 		}
 		return broker;
 	}
-
 	/**
 	 * Prints the Cloudlet objects
 	 * 
@@ -778,6 +761,8 @@ public class CloudLauncher {
 
 		DecimalFormat dft = new DecimalFormat("###.##");
 		averageWaitingTime = 0.0;
+		
+//		Collections.sort(list);
 		for (int i = 0; i < size; i++) {
 			cloudlet = list.get(i);
 			Log.print(indent + cloudlet.getCloudletId() + indent + indent);
@@ -799,8 +784,8 @@ public class CloudLauncher {
 			}
 		}
 		averageWaitingTime = averageWaitingTime / size;
-		// Log.printLine(averageWaitingTime);
-
+		
+		
 	}
 
 	public static Double calculateAndPrintValues(ArrayList<ArrayList> cpuList,
@@ -809,6 +794,7 @@ public class CloudLauncher {
 		String indent = "    ";
 		ArrayList<ArrayList> cpuValuesList = cpuList;
 		ArrayList<ArrayList> memValuesList = memList;
+
 
 		if (cpuValuesList == null || cpuValuesList.size() == 0) {
 			Log.printLine("cpuValuesList is null ");
@@ -819,23 +805,31 @@ public class CloudLauncher {
 
 		ArrayList cpuShares = new ArrayList<>();
 		ArrayList memShares = new ArrayList<>();
+		int usedNum = 0;
 		for (int i = 0; i < cpuValuesList.size(); i++) {
 			if (cpuValuesList.get(i) == null
 					|| cpuValuesList.get(i).size() == 0)
 				continue;
-
+			
+			usedNum++;
+			
 			ArrayList cpuValues = cpuValuesList.get(i);
 			ArrayList memValues = memValuesList.get(i);
 			ArrayList timeValues = timeList.get(i);
 			// excel.createCellAndSetCellValue(1,i*2+1 , cpuValues);
 			// excel.createCellAndSetCellValue(1,i*2+2 , memValues);
 //			Log.printLine(indent + "主机" + i );
-			 Log.print(indent + i + indent + indent);
+			ArrayList energyValues = new ArrayList<>();
+			 Log.printLine(indent + i + indent + indent);
 			double cpuS = 0, memS = 0,totalTime = 0;
+			double power = 0;//当前时间段，一个主机的功率
+			double aEnergy = 0;//计算一个主机的能耗
 			for (int k = 0; k < cpuValues.size(); k++) {
 				double timeSpan = (double)timeValues.get(k+1)- (double)timeValues.get(k);
-
+				power = A*(double) cpuValues.get(k)+B;
+				aEnergy+=power*timeSpan;
 				cpuS +=((double) cpuValues.get(k))*timeSpan;
+				
 				memS +=((double) memValues.get(k))*timeSpan;
 				totalTime+=timeSpan;
 				 Log.printLine(indent + df.format(cpuValues.get(k))+indent + df.format(memValues.get(k))+
@@ -843,10 +837,21 @@ public class CloudLauncher {
 			}
 			cpuS = cpuS /totalTime;
 			memS = memS /totalTime;
-
+			energyValues.add(aEnergy);
 			cpuShares.add(cpuS);
 			memShares.add(memS);
+			
+			energy += aEnergy;
+			
 		}
+		energy = energy/(3600.0*1000.0);
+		
+//		for (Double aEnergy : energyValues) {
+//			
+//		}
+		
+		//设置本次调度使用过的主机数
+		usedHosts = usedNum;
 		double cpuValue = 0;
 		double memValue = 0;
 		double hostAvgSyn = 0;
@@ -889,11 +894,6 @@ public class CloudLauncher {
 				
 				while (count-->0) {
 					try {
-//						Date d=new Date(); 
-//						if (d.getTime() - StartTime.getTime() > 10*1000) {
-//							Log.printLine("已经超过了10s，发送任务结束。。。");
-//							stop();
-//						}
 						
 						Thread.sleep(GlobalParameter.TimeUnit
 								* 10);

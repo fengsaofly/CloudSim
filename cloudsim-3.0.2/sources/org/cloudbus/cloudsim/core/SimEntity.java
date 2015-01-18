@@ -448,7 +448,7 @@ public abstract class SimEntity implements Cloneable {
 	 * 
 	 * @return the state
 	 */
-	protected int getState() {
+	public int getState() {
 		return state;
 	}
 

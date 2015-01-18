@@ -79,7 +79,7 @@ public class CloudSimExample8 {
 		LinkedList<Cloudlet> list = new LinkedList<Cloudlet>();
 
 		//cloudlet parameters
-		long length = 40000;
+		long length = (long)(1+ 40000*Math.random());
 		long fileSize = 300;
 		long outputSize = 300;
 		int pesNumber = 1;
@@ -88,7 +88,7 @@ public class CloudSimExample8 {
 		Cloudlet[] cloudlet = new Cloudlet[cloudlets];
 
 		for(int i=0;i<cloudlets;i++){
-			cloudlet[i] = new Cloudlet(idShift + i, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+			cloudlet[i] = new Cloudlet(idShift + i, length+i*3000, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
 			// setting the owner of these Cloudlets
 			cloudlet[i].setUserId(userId);
 			list.add(cloudlet[i]);
@@ -116,12 +116,12 @@ public class CloudSimExample8 {
 			// Initialize the CloudSim library
 			CloudSim.init(num_user, calendar, trace_flag);
 
-			GlobalBroker globalBroker = new GlobalBroker("GlobalBroker");
+//			GlobalBroker globalBroker = new GlobalBroker("GlobalBroker");
 
 			// Second step: Create Datacenters
 			//Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
 			Datacenter datacenter0 = createDatacenter("Datacenter_0");
-			Datacenter datacenter1 = createDatacenter("Datacenter_1");
+//			Datacenter datacenter1 = createDatacenter("Datacenter_1");
 
 			//Third step: Create Broker
 			DatacenterBroker broker = createBroker("Broker_0");
@@ -129,7 +129,7 @@ public class CloudSimExample8 {
 
 			//Fourth step: Create VMs and Cloudlets and send them to broker
 			vmList = createVM(brokerId, 5, 0); //creating 5 vms
-			cloudletList = createCloudlet(brokerId, 10, 0); // creating 10 cloudlets
+			cloudletList = createCloudlet(brokerId, 20, 0); // creating 10 cloudlets
 
 			broker.submitVmList(vmList);
 			broker.submitCloudletList(cloudletList);
@@ -139,7 +139,7 @@ public class CloudSimExample8 {
 
 			// Final step: Print results when simulation is over
 			List<Cloudlet> newList = broker.getCloudletReceivedList();
-			newList.addAll(globalBroker.getBroker().getCloudletReceivedList());
+//			newList.addAll(globalBroker.getBroker().getCloudletReceivedList());
 
 			CloudSim.stopSimulation();
 
@@ -147,7 +147,7 @@ public class CloudSimExample8 {
 
 			//Print the debt of each user to each datacenter
 			datacenter0.printDebts();
-			datacenter1.printDebts();
+//			datacenter1.printDebts();
 
 			Log.printLine("CloudSimExample8 finished!");
 		}
@@ -236,7 +236,7 @@ public class CloudSimExample8 {
 		// 6. Finally, we need to create a PowerDatacenter object.
 		Datacenter datacenter = null;
 		try {
-			datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
+			datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 5000);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

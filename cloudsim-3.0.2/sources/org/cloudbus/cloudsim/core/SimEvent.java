@@ -82,7 +82,7 @@ public class SimEvent implements Cloneable, Comparable<SimEvent> {
 		data = null;
 	}
 
-	protected void setSerial(long serial) {
+	public void setSerial(long serial) {
 		this.serial = serial;
 	}
 

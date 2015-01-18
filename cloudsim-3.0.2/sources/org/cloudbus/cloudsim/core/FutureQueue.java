@@ -25,10 +25,11 @@ import java.util.TreeSet;
 public class FutureQueue {
 
 	/** The sorted set. */
-	private final SortedSet<SimEvent> sortedSet = new TreeSet<SimEvent>();
+	protected final SortedSet<SimEvent> sortedSet = new TreeSet<SimEvent>();
+	
 
 	/** The serial. */
-	private long serial = 0;
+	protected long serial = 0;
 
 	/**
 	 * Add a new event to the queue. Adding a new event to the queue preserves the temporal order of

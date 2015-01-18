@@ -13,8 +13,9 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.cloudbus.cloudsim.Cloudlet;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEntity;
@@ -33,13 +34,13 @@ import org.cloudbus.cloudsim.lists.VmList;
 public class DatacenterBroker extends SimEntity {
 
 	/** The vm list. */
-	protected List<? extends Vm> vmList;
+	protected CopyOnWriteArrayList<? extends Vm>  vmList;
 
 	/** The vms created list. */
 	protected List<? extends Vm> vmsCreatedList;
 
 	/** The cloudlet list. */
-	protected List<? extends Cloudlet> cloudletList;
+	protected CopyOnWriteArrayList<? extends Cloudlet> cloudletList;
 
 	/** The cloudlet submitted list. */
 	protected List<? extends Cloudlet> cloudletSubmittedList;
@@ -83,9 +84,9 @@ public class DatacenterBroker extends SimEntity {
 	public DatacenterBroker(String name) throws Exception {
 		super(name);
 
-		setVmList(new ArrayList<Vm>());
+		setVmList(new CopyOnWriteArrayList<Vm>());
 		setVmsCreatedList(new ArrayList<Vm>());
-		setCloudletList(new ArrayList<Cloudlet>());
+		setCloudletList(new CopyOnWriteArrayList<Cloudlet>());
 		setCloudletSubmittedList(new ArrayList<Cloudlet>());
 		setCloudletReceivedList(new ArrayList<Cloudlet>());
 
@@ -134,6 +135,7 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	public void bindCloudletToVm(int cloudletId, int vmId) {
 		CloudletList.getById(getCloudletList(), cloudletId).setVmId(vmId);
+		
 	}
 
 	/**
@@ -431,7 +433,7 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param vmList the new vm list
 	 */
-	protected <T extends Vm> void setVmList(List<T> vmList) {
+	protected <T extends Vm> void setVmList(CopyOnWriteArrayList<T> vmList) {
 		this.vmList = vmList;
 	}
 
@@ -443,7 +445,6 @@ public class DatacenterBroker extends SimEntity {
 	 */
 	@SuppressWarnings("unchecked")
 	public <T extends Cloudlet> List<T> getCloudletList() {
-		
 		return (List<T>) cloudletList;
 	}
 
@@ -453,7 +454,7 @@ public class DatacenterBroker extends SimEntity {
 	 * @param <T> the generic type
 	 * @param cloudletList the new cloudlet list
 	 */
-	protected <T extends Cloudlet> void setCloudletList(List<T> cloudletList) {
+	protected <T extends Cloudlet> void setCloudletList(CopyOnWriteArrayList<T> cloudletList) {
 		this.cloudletList = cloudletList;
 	}
 

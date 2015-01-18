@@ -89,15 +89,12 @@ public class CloudSimExample2 {
 	            	int pesNumber = 1; //number of cpus
 	            	String vmm = "Xen"; //VMM name
 
-	            	//create two VMs
-	            	Vm vm1 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-
-	            	vmid++;
-	            	Vm vm2 = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-
-	            	//add the VMs to the vmList
-	            	vmlist.add(vm1);
-	            	vmlist.add(vm2);
+	            	for (int i = 0; i < 10; i++) {
+	            		Vm vm1 = new Vm(vmid++, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+	            		vmlist.add(vm1);
+		            	
+					}
+	         
 
 	            	//submit vm list to the broker
 	            	broker.submitVmList(vmlist);
@@ -114,25 +111,30 @@ public class CloudSimExample2 {
 	            	long outputSize = 300;
 	            	UtilizationModel utilizationModel = new UtilizationModelFull();
 
-	            	Cloudlet cloudlet1 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-	            	cloudlet1.setUserId(brokerId);
 
-	            	id++;
-	            	Cloudlet cloudlet2 = new Cloudlet(id, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
-	            	cloudlet2.setUserId(brokerId);
+	            	
+	            	for (int i = 0; i < 10	; i++) {
+	            		Cloudlet cloudlet1 = new Cloudlet(id++, length, pesNumber, fileSize, outputSize, utilizationModel, utilizationModel, utilizationModel);
+		            	cloudlet1.setUserId(brokerId);
+		            	
+	            		cloudletList.add(cloudlet1);
+	            		
+	            		
+					}
 
 	            	//add the cloudlets to the list
-	            	cloudletList.add(cloudlet1);
-	            	cloudletList.add(cloudlet2);
+	              	broker.submitCloudletList(cloudletList);
+	            	for (int i = 0; i < 10	; i++) {	         
+		            	broker.bindCloudletToVm(i,i);	
+					}
 
 	            	//submit cloudlet list to the broker
-	            	broker.submitCloudletList(cloudletList);
-
+	 
 
 	            	//bind the cloudlets to the vms. This way, the broker
 	            	// will submit the bound cloudlets only to the specific VM
-	            	broker.bindCloudletToVm(cloudlet1.getCloudletId(),vm1.getId());
-	            	broker.bindCloudletToVm(cloudlet2.getCloudletId(),vm2.getId());
+	            	
+//	            	broker.bindCloudletToVm(cloudlet2.getCloudletId(),vm2.getId());
 
 	            	// Sixth step: Starts the simulation
 	            	CloudSim.startSimulation();
@@ -211,7 +213,7 @@ public class CloudSimExample2 {
 	        // 6. Finally, we need to create a PowerDatacenter object.
 	        Datacenter datacenter = null;
 	        try {
-	            datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 0);
+	            datacenter = new Datacenter(name, characteristics, new VmAllocationPolicySimple(hostList), storageList, 1000);
 	        } catch (Exception e) {
 	            e.printStackTrace();
 	        }

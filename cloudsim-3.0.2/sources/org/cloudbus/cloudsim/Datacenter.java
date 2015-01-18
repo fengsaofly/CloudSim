@@ -937,6 +937,7 @@ public class Datacenter extends SimEntity {
 		List<? extends Host> list = getVmAllocationPolicy().getHostList();
 		for (int i = 0; i < list.size(); i++) {
 			Host host = list.get(i);
+		
 			for (Vm vm : host.getVmList()) {
 				while (vm.getCloudletScheduler().isFinishedCloudlets()) {
 					Cloudlet cl = vm.getCloudletScheduler().getNextFinishedCloudlet();

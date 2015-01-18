@@ -93,6 +93,7 @@ public class PowerVm extends Vm {
 	@Override
 	public double updateVmProcessing(double currentTime, List<Double> mipsShare) {
 		double time = super.updateVmProcessing(currentTime, mipsShare);
+		//在interval到达的时候增加一条信息，并设置previousTime为currentTime
 		if (currentTime > getPreviousTime() && (currentTime - 0.1) % getSchedulingInterval() == 0) {
 			double utilization = getTotalUtilizationOfCpu(getCloudletScheduler().getPreviousTime());
 			if (CloudSim.clock() != 0 || utilization != 0) {

@@ -27,14 +27,13 @@ import org.cloudbus.cloudsim.lists.VmList;
 import DataCenterBrokerModified.DatacenterBrokerModifiedRealTime;
 import DataCenterBrokerModified.VmComparator;
 
-public class myDatacenterBroker extends DatacenterBrokerSimple {
+public class DatacenterBrokerSimple extends DatacenterBroker {
 
 	// ==============================================================REAL
 	// TIME========================================
 	ConcurrentLinkedQueue<woCloudlet> cloudletsBuffer = new ConcurrentLinkedQueue<>();// 保存并发任务队列
 
 	ConcurrentLinkedQueue<myVm> vmsRequestBuffer = new ConcurrentLinkedQueue<>();// 保存并发任务队列
-
 	PriorityQueue<VmComparator> checkList = new PriorityQueue<>();// 保存vm队列，vm根据cpu的大小进行排序
 	int vmInd = 0, startTime = 0;
 	volatile int presentTime = 0;// 当前时间
@@ -43,31 +42,22 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 	Timer updatePresentTime;
 	protected int receivedCloudlets = 0;
 	protected volatile Integer cloudletCount = 0;
-	List<List<myVm>> allRequests = new CopyOnWriteArrayList<List<myVm>>();
-	List<Integer> UnitCloudlets = new ArrayList<Integer>();
-
-
-
-
-	/**
-	 * Sets the vm list.
-	 * 
-	 * @param <T> the generic type
-	 * @param vmList the new vm list
-	 */
-	protected <T extends Vm> void setVmList(CopyOnWriteArrayList<T> vmList) {
-		this.vmList = vmList;
-	}
-
 
 	protected volatile boolean hasNewRequests =false;//判断是否有新任务
 
-	public myDatacenterBroker(String name) throws Exception {
+	public DatacenterBrokerSimple(String name) throws Exception {
 		super(name);
 		// TODO Auto-generated constructor stub
 	}
 
-
+	@Override
+	public void bindCloudletToVm(int cloudletId, int vmId) {
+		// woCloudlet cloudlet = (woCloudlet) CloudletList.getById(
+		// getCloudletList(), cloudletId);
+		// cloudlet.setVmId(vmId);
+		// myVm myVm = (myVm) getVmList().get(vmId);
+		// cloudlet.setVmType(myVm.getVmType());
+	}
 
 	@Override
 	/**
@@ -86,11 +76,8 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 		// 如果用户需要反馈信息，则打印反馈信息
 		if (result == CloudSimTags.TRUE) {
 			getVmsToDatacentersMap().put(vmId, datacenterId);// 将创建的vmID与datacenterId绑定
-			
 			getVmsCreatedList().add(VmList.getById(getVmList(), vmId));// 将创建的VM加入VmsCreatedList
-			
-//			Vm vm = getVmList().get(vmId);
-//			 Log.printLine(vm.getHost());
+			// Log.printLine(getVmsCreatedList());
 			Log.printLine(CloudSim.clock()
 					+ ": "
 					+ getName()
@@ -162,7 +149,7 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 		// 提交的总任务数等于已经完成的任务数
 		if (receivedCloudlets == cloudletCount) {
 
-			// 等待11s,查看是否有新任务
+//			// 等待11s,查看是否有新任务
 			try {
 				Thread.sleep(GlobalParameter.TimeUnit * 11);
 			} catch (InterruptedException e) {
@@ -171,7 +158,8 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 			}
 			//发现有新任务
 			if (receivedCloudlets < cloudletCount && receivedCloudlets > 0) {
-				clearVM(vm);// 已执行的任务列表清空
+//				clearDatacenters();// 已执行的任务列表清空
+				clearVM(vm);
 				createVmsInDatacenter(getDatacenterIdsList().get(0));
 			} else {//没有任务了
 				Log.printLine(CloudSim.clock() + ": " + getName()
@@ -185,11 +173,12 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 		// 如果已经提交的任务小于总任务数，表明一部分任务已经完成
 		else if (receivedCloudlets < cloudletCount && receivedCloudlets > 0) {
 			clearVM(vm);// 已执行的任务列表清空
+//			clearDatacenters();
 			createVmsInDatacenter(getDatacenterIdsList().get(0));
+
 		}
 		
 		myHost host =(myHost)vm.getHost();
-		
 		//主机无事可做
 		if(host.getVmList().size()==1 && host.wqEmpty()	&& !hasNewRequests)
 		{
@@ -202,38 +191,20 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 	 */
 	@Override
 	public void submitVmList(List<? extends Vm> list) {
-//		List<myVm> l = new CopyOnWriteArrayList<myVm>();
-//		for (Vm vm : list) {
-//			myVm myVm = (myVm)vm;
-//			try {
-//				myVm m = myVm.clone();
-//				l.add(m);
-//			} catch (CloneNotSupportedException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-//			
-//			
-//		}
 		getVmList().addAll(list);
-		
-//		allRequests.add((List<myVm>) list);
-		for (Vm vm : list) {
-			
-			vmsRequestBuffer.add((myVm)vm);
-		}
-		
-//		System.out.println(((myVm)allRequests.get(0).get(0)).getId());
 		cloudletCount += list.size();
 		hasNewRequests  = true;
-		UnitCloudlets.add(list.size());
 		
 	}
 
 	@Override
 	public void submitCloudletList(java.util.List<? extends Cloudlet> list) {
 		super.submitCloudletList(list);
-
+		//保存提交时间
+//		for (Cloudlet cloudlet : list) {
+//			cloudlet.setSubmissionTime(CloudSim.clock()); 
+//		}
+		
 	}
 	@Override
 	public <T extends Vm> CopyOnWriteArrayList<T> getVmList() {
@@ -338,30 +309,11 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 	@Override
 	protected void createVmsInDatacenter(int datacenterId) {
 
-		if(UnitCloudlets.size()==0) return ;
-		
-		int size = UnitCloudlets.remove(0);
-		List<myVm> curVMList = new ArrayList<myVm>() ; // allRequests.remove(0);
-		for (int i = 0; i < size; i++) {
-
-			myVm vm = vmsRequestBuffer.remove();
-			curVMList.add(vm);
-		}
-		if(hasNewRequests)
-		{
-			sendNow(getDatacenterIdsList().get(0), CloudSimTags.Current_Requests_send, curVMList.size());
-			hasNewRequests = false;
-		}
-		
-		
-
 		// send as much vms as possible for this datacenter before trying the
 		// next one
 		int requestedVms = 0;
 		String datacenterName = CloudSim.getEntityName(datacenterId);
-		
-		
-		for (Vm vm : curVMList) {
+		for (Vm vm : getVmList()) {
 			if (!getVmsToDatacentersMap().containsKey(vm.getId())) {
 				Log.printLine(CloudSim.clock() + ": " + getName()
 						+ ": Trying to Create VM #" + vm.getId() + " in "

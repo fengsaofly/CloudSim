@@ -16,6 +16,7 @@ import org.cloudbus.cloudsim.Storage;
 import org.cloudbus.cloudsim.Vm;
 import org.cloudbus.cloudsim.VmAllocationPolicy;
 import org.cloudbus.cloudsim.VmAllocationPolicySimple;
+import org.cloudbus.cloudsim.core.CloudInformationService;
 import org.cloudbus.cloudsim.core.CloudSim;
 import org.cloudbus.cloudsim.core.CloudSimTags;
 import org.cloudbus.cloudsim.core.SimEvent;
@@ -32,6 +33,7 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 	private List<myVm> allSubmittedVmList = new ArrayList<myVm>();
 	private List<myVm> createdVmList = new ArrayList<myVm>();
 	private List<myVm> addedVmList = new ArrayList<myVm>();
+	private Integer currentRequests = -1;
 	public static boolean cloudletHasBeenSubmitted = false;
 
 	public myDatacenter(String name, DatacenterCharacteristics characteristics,
@@ -43,21 +45,21 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 		// vmCreateThread.start();
 		vmExcuteThread = new vmExcuteThread("vmExcuteThread");
 		vmExcuteThread.start();
-	
 
 	}
 
-	// public void doingVmCreating(){
-	// SimEvent ev=null;
-	// // Log.printLine("vmCreateThread is running !");
-	// if(list.size()>0) {
-	// ev = list.get(0);
-	// processVmCreate(ev,true);
-	//
-	// }
-	//
-	//
-	// }
+	@Override
+	public void processEvent(SimEvent ev) {
+
+		switch (ev.getTag()) {
+		// Resource characteristics inquiry
+		case CloudSimTags.Current_Requests_send:
+			currentRequests = (Integer) ev.getData();
+			return;
+		}
+		super.processEvent(ev);
+	}
+
 	@Override
 	/**
 	 * 关闭数据中心，主要是关闭所有的主机
@@ -65,7 +67,9 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 	public void shutdownEntity() {
 		Log.printLine("-------关闭数据中心-------");
 		for (Host host : getHostList()) {
-			if(myHost.timeValuesList.get(host.getId()).size() == myHost.cpuValuesList.get(host.getId()).size() && myHost.cpuValuesList.get(host.getId()).size()>0)
+			if (myHost.timeValuesList.get(host.getId()).size() == myHost.cpuValuesList
+					.get(host.getId()).size()
+					&& myHost.cpuValuesList.get(host.getId()).size() > 0)
 				myHost.timeValuesList.get(host.getId()).add(CloudSim.clock());
 		}
 		vmExcuteThread.stopThread();
@@ -81,28 +85,26 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 	// }
 	@Override
 	protected void processVmCreate(SimEvent ev, boolean ack) {
-		
-//		VmAllocationPolicyMy policyMy = (VmAllocationPolicyMy)getVmAllocationPolicy();
-//		if(policyMy.getCurVmNums() == -1){
-//			policyMy.setCurVmNums(getVmList().size());
-//		}
+
+		if (getVmAllocationPolicy().getClass() == VmAllocationPolicyMy.class)
+			sendPolicyCurResquestNums();
 		onceSubmittedVmList.add((myVm) ev.getData());
 		Vm vm = (Vm) ev.getData();
 		// finishFlag++;
+//		System.out.println("当前任务量："+currentRequests);
 		addedVmList.add((myVm) vm);
-//		getCharacteristics().
+		// getCharacteristics().
 		boolean result = getVmAllocationPolicy().allocateHostForVm(vm);
 
-	
-		// send(vm.getUserId(), 0,CloudSimTags.VM_WaitCreate, null);
-		// while(createdVmList.isEmpty()){
-		// try {
-		// Thread.sleep(WAITING);
-		// } catch (InterruptedException e) {
-		// // TODO Auto-generated catch block
-		// e.printStackTrace();
-		// }
-		// }
+	}
+
+	private void sendPolicyCurResquestNums() {
+
+		VmAllocationPolicyMy policyMy = (VmAllocationPolicyMy) getVmAllocationPolicy();
+		if (policyMy != null
+				&& (policyMy.getCurVmNums() == -1 || policyMy.getCurVmNums() == 0))
+			policyMy.setCurVmNums(currentRequests);
+
 	}
 
 	// 从host那里得知，vm创建成功
@@ -143,17 +145,19 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 		// .getHost(vm)+"vm"+vm.getId()+"的主机为："+vm.getHost());
 
 		VmAllocationPolicySimple myPolicy = (VmAllocationPolicySimple) getVmAllocationPolicy();
-		myHost host = (myHost)vm.getHost();
+		myHost host = (myHost) vm.getHost();
 		int usedPes = 0;
 		for (Vm myVm : host.getVmList()) {
-			usedPes+=myVm.getNumberOfPes();
+			usedPes += myVm.getNumberOfPes();
 		}
 		myPolicy.getVmTable().put(vm.getUid(), host);
 		myPolicy.getUsedPes().put(vm.getUid(), vm.getNumberOfPes());
-		myPolicy.getFreePes().set(host.getId(),	host.getNumberOfPes()-usedPes);
-		Log.printLine("创建vm" + vm.getId() + "成功，主机" + host.getId()
-				+ "的可用PE数为：" + myPolicy.getFreePes().get(host.getId()));
-		vm.updateVmProcessing(CloudSim.clock(), host.getVmScheduler().getAllocatedMipsForVm(vm));
+		myPolicy.getFreePes()
+				.set(host.getId(), host.getNumberOfPes() - usedPes);
+		Log.printLine("创建vm" + vm.getId() + "成功，主机" + host.getId() + "的可用PE数为："
+				+ myPolicy.getFreePes().get(host.getId()));
+		vm.updateVmProcessing(CloudSim.clock(), host.getVmScheduler()
+				.getAllocatedMipsForVm(vm));
 
 	}
 
@@ -180,7 +184,6 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 	 */
 	protected void processCloudletSubmit(SimEvent ev, boolean ack) {
 		updateCloudletProcessing();
-
 		try {
 			// gets the Cloudlet object
 			woCloudlet cl = (woCloudlet) ev.getData();
@@ -295,43 +298,44 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 
 		getVmList().remove(vm);
 
-
 	}
 
 	@Override
 	protected void checkCloudletCompletion() {
-		
+
 		List<? extends Host> list = getVmAllocationPolicy().getHostList();
 		for (int i = 0; i < list.size(); i++) {
 			Host host = list.get(i);
-		
+
 			for (Vm vm : host.getVmList()) {
 				while (vm.getCloudletScheduler().isFinishedCloudlets()) {
-					Cloudlet cl = vm.getCloudletScheduler().getNextFinishedCloudlet();
+					Cloudlet cl = vm.getCloudletScheduler()
+							.getNextFinishedCloudlet();
 					if (cl != null) {
-						sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN, cl);
+						sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN,
+								cl);
 					}
 				}
 			}
 		}
-//		List<? extends Host> list = getVmAllocationPolicy().getHostList();
-//		for (int i = 0; i < list.size(); i++) {
-//			Host host = list.get(i);
-//			Iterator<Vm> iterator = new CopiedIterator(host.getVmList()
-//					.iterator());
-//			while (iterator.hasNext()) {
-//				Vm vm = iterator.next();
-//				while (vm.getCloudletScheduler().isFinishedCloudlets()) {
-//					Cloudlet cl = vm.getCloudletScheduler()
-//							.getNextFinishedCloudlet();
-//					if (cl != null) {
-//						sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN,
-//								cl);
-//					}
-//				}
-//			}
+		// List<? extends Host> list = getVmAllocationPolicy().getHostList();
+		// for (int i = 0; i < list.size(); i++) {
+		// Host host = list.get(i);
+		// Iterator<Vm> iterator = new CopiedIterator(host.getVmList()
+		// .iterator());
+		// while (iterator.hasNext()) {
+		// Vm vm = iterator.next();
+		// while (vm.getCloudletScheduler().isFinishedCloudlets()) {
+		// Cloudlet cl = vm.getCloudletScheduler()
+		// .getNextFinishedCloudlet();
+		// if (cl != null) {
+		// sendNow(cl.getUserId(), CloudSimTags.CLOUDLET_RETURN,
+		// cl);
+		// }
+		// }
+		// }
 
-//		}
+		// }
 	}
 
 	// public synchronized void lock() {
@@ -364,8 +368,8 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 
 		public void setCurCreatedVm(myVm vm) {
 			this.curCreatedVm = vm;
-//			Log.printLine("------此时处理的vm" + curCreatedVm.getId() + ",类型"
-//					+ curCreatedVm.getVmType());
+			// Log.printLine("------此时处理的vm" + curCreatedVm.getId() + ",类型"
+			// + curCreatedVm.getVmType());
 		}
 
 		@Override

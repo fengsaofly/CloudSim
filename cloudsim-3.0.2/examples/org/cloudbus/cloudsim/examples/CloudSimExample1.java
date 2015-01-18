@@ -87,10 +87,14 @@ public class CloudSimExample1 {
 			String vmm = "Xen"; // VMM name
 
 			// create VM
-			Vm vm = new Vm(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+			for (int i = 0; i <1; i++) {
+				Vm vm = new Vm(vmid++, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
+				vmlist.add(vm);
 
+			}
+			
 			// add the VM to the vmList
-			vmlist.add(vm);
+			
 
 			// submit vm list to the broker
 			broker.submitVmList(vmlist);

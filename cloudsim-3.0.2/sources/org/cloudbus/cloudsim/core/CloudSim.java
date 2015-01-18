@@ -38,31 +38,32 @@ import org.cloudbus.cloudsim.core.predicates.PredicateNone;
 public class CloudSim {
 
 	/** The Constant CLOUDSIM_VERSION_STRING. */
-	private static final String CLOUDSIM_VERSION_STRING = "3.0";
+	protected static final String CLOUDSIM_VERSION_STRING = "3.0";
 
 	/** The id of CIS entity. */
-	private static int cisId = -1;
+	protected static int cisId = -1;
 
 	/** The id of CloudSimShutdown entity. */
 	@SuppressWarnings("unused")
-	private static int shutdownId = -1;
+	protected
+	static int shutdownId = -1;
 
 	/** The CIS object. */
-	private static CloudInformationService cis = null;
+	protected static CloudInformationService cis = null;
 
 	/** The Constant NOT_FOUND. */
 	private static final int NOT_FOUND = -1;
 
 	/** The trace flag. */
 	@SuppressWarnings("unused")
-	private static boolean traceFlag = false;
+	protected
+	static boolean traceFlag = false;
 
 	/** The calendar. */
-	private static Calendar calendar = null;
+	protected static Calendar calendar = null;
 
 	/** The termination time. */
-//	private static double terminateAt = -1;
-	private static double terminateAt = 5000000;
+	protected static double terminateAt = -1;
 
 	/**
 	 * Initialises all the common attributes.
@@ -75,7 +76,7 @@ public class CloudSim {
 	 * @pre $none
 	 * @post $none
 	 */
-	private static void initCommonVariable(Calendar _calendar, boolean _traceFlag, int numUser)
+	protected static void initCommonVariable(Calendar _calendar, boolean _traceFlag, int numUser)
 			throws Exception {
 		initialize();
 		// NOTE: the order for the below 3 lines are important
@@ -267,35 +268,35 @@ public class CloudSim {
 	// ======== SIMULATION METHODS ===============//
 
 	/** The entities. */
-	private static List<SimEntity> entities;
+	protected static List<SimEntity> entities;
 
 	/** The future event queue. */
-	protected static FutureQueue future;
+	protected static MyFutureQueue future;
 
 	/** The deferred event queue. */
 	protected static DeferredQueue deferred;
 
 	/** The simulation clock. */
-	private static double clock;
+	protected static double clock;
 
 	/** Flag for checking if the simulation is running. */
-	private static boolean running;
+	protected static boolean running;
 
 	/** The entities by name. */
-	private static Map<String, SimEntity> entitiesByName;
+	protected static Map<String, SimEntity> entitiesByName;
 
 	// The predicates used in entity wait methods
 	/** The wait predicates. */
-	private static Map<Integer, Predicate> waitPredicates;
+	protected static Map<Integer, Predicate> waitPredicates;
 
 	/** The paused. */
-	private static boolean paused = false;
+	protected static boolean paused = false;
 
 	/** The pause at. */
-	private static long pauseAt = -1;
+	protected static long pauseAt = -1;
 
 	/** The abrupt terminate. */
-	private static boolean abruptTerminate = false;
+	protected static boolean abruptTerminate = false;
 
 	/**
 	 * Initialise the simulation for stand alone simulations. This function should be called at the
@@ -305,7 +306,7 @@ public class CloudSim {
 		Log.printLine("Initialising...");
 		entities = new ArrayList<SimEntity>();
 		entitiesByName = new LinkedHashMap<String, SimEntity>();
-		future = new FutureQueue();
+		future = new MyFutureQueue();
 		deferred = new DeferredQueue();
 		waitPredicates = new HashMap<Integer, Predicate>();
 		clock = 0;
@@ -490,6 +491,8 @@ public class CloudSim {
 				
 				processEvent(first);
 				future.remove(first);
+				
+				
 	
 				it = future.iterator();
 	
@@ -512,8 +515,8 @@ public class CloudSim {
 			}
 			else {
 				queue_empty = true;
-//				running = false;
-//				printMessage("Simulation: No more future events");
+				running = false;
+				printMessage("Simulation: No more future events");
 			}
 	
 
@@ -713,7 +716,7 @@ public class CloudSim {
 	 * 
 	 * @param e the e
 	 */
-	private static void processEvent(SimEvent e) {
+	protected static void processEvent(SimEvent e) {
 		int dest, src;
 		SimEntity dest_ent;
 		// Update the system's clock
@@ -845,11 +848,11 @@ public class CloudSim {
 			runStart();
 		}
 		while (true) {
-//			if (runClockTick() || abruptTerminate) {
-//				break;
-//			}
-			printMessage("-------------当前仿真时间为："+clock+"-------------");
-			runClockTick();
+			if (runClockTick() || abruptTerminate) {
+				break;
+			}
+//			printMessage("-------------当前仿真时间为："+clock+"-------------");
+//			runClockTick();
 //			clock++;
 			// this block allows termination of simulation at a specific time
 			if (terminateAt > 0.0 && clock >= terminateAt) {
@@ -896,7 +899,7 @@ public class CloudSim {
 				}
 			}
 		}
-
+//		printMessage("正在关闭所有服务...");
 		for (SimEntity ent : entities) {
 			ent.shutdownEntity();
 		}
@@ -928,7 +931,7 @@ public class CloudSim {
 	 * 
 	 * @param message the message
 	 */
-	private static void printMessage(String message) {
+	protected static void printMessage(String message) {
 		Log.printLine(message);
 	}
 
@@ -939,6 +942,11 @@ public class CloudSim {
 	 */
 	public static boolean isPaused() {
 		return paused;
+	}
+
+	public static double getMinTimeBetweenEvents() {
+		// TODO Auto-generated method stub
+		return 0.1;
 	}
 
 }

@@ -43,11 +43,10 @@ public class Host extends TimerTask{
 	private VmScheduler vmScheduler;
 
 	/** The vm list. */
-	private final List<? extends Vm> vmList = new ArrayList<Vm>();
+	protected final List<? extends Vm> vmList = new ArrayList<Vm>();
 
 	/** The pe list. */
 	private List<? extends Pe> peList;
-
 	/** Tells whether this machine is working properly or has failed. */
 	private boolean failed;
 
@@ -221,9 +220,10 @@ public class Host extends TimerTask{
 			return false;
 		}
 
+		
 		if (!getVmScheduler().allocatePesForVm(vm, vm.getCurrentRequestedMips())) {
 			Log.printLine("[VmScheduler.vmCreate] Allocation of VM #" + vm.getId() + " to Host #" + getId()
-					+ " failed by MIPS");
+					+ " failed by MIPS"); 
 			getRamProvisioner().deallocateRamForVm(vm);
 			getBwProvisioner().deallocateBwForVm(vm);
 			return false;
@@ -530,6 +530,7 @@ public class Host extends TimerTask{
 	@SuppressWarnings("unchecked")
 	public <T extends Vm> List<T> getVmList() {
 		return (List<T>) vmList;
+		
 	}
 
 	/**
