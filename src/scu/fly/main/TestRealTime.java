@@ -65,86 +65,52 @@ public class TestRealTime {
      * Creates main() to run this example
      */
     public static void main(String[] args) {
+    	
+    	
+//    	int []a = new int[]{2,4,5,1};
+//    	int []res = new int[a.length+1];
+//    	int size = 1;
+//    	for (int i : a) {
+//			size*=(i+1);
+//		}
+//    	
+//    	
+//    	MathUtil.dfs(res,a,0,size);
+    	
+		int mips = 1000;
 
-        Log.printLine("Starting CloudSimExample3...");
+		int hostId = 0;
+		int ram = GlobalParameter.HOST_RAM[0] ;// * 1000; // host memory (MB)
+		long storage = GlobalParameter.HOST_STORAGE[0]; // host storage
+		int bw = GlobalParameter.HOST_BW;
+		
+		List<Pe> peNumForPerHost = new ArrayList<Pe>();
+		int peId = 0;
+		while (peId < 30) {
 
-        try {
-			// First step: Initialize the CloudSim package. It should be called
-            // before creating any entities.
-            int num_user = 1;   // number of cloud users
-            Calendar calendar = Calendar.getInstance();
-            boolean trace_flag = false;  // mean trace events
-            
-            
-
-            // Initialize the CloudSim library
-            CloudSim.init(num_user, calendar, trace_flag);
-
-			// Second step: Create Datacenters
-            //Datacenters are the resource providers in CloudSim. We need at list one of them to run a CloudSim simulation
-            @SuppressWarnings("unused")
-            Datacenter datacenter0 = createDatacenter("Datacenter_0");
-
-            //Third step: Create Broker
-            DatacenterBrokerModifiedRealTime broker = createBroker();
-            int brokerId = broker.getId();
-
-            //Fourth step: Create one virtual machine
-            vmlist = new ArrayList<VmComparator>();
-
-            //VM description
-            int vmid = 0;
-            int mips = 250;
-            long size = 10000; //image size (MB)
-            int ram = 2048; //vm memory (MB)
-            long bw = 1000;
-            int pesNumber = 1; //number of cpus
-            String vmm = "Xen"; //VMM name
-
-            //create two VMs
-            VmComparator vm1 = new VmComparator(vmid, brokerId, mips, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-
-            //the second VM will have twice the priority of VM1 and so will receive twice CPU time
-            vmid++;
-            VmComparator vm2 = new VmComparator(vmid, brokerId, mips * 2, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-
-            vmid++;
-            VmComparator vm3 = new VmComparator(vmid, brokerId, mips * 3, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-
-            vmid++;
-            VmComparator vm4 = new VmComparator(vmid, brokerId, mips * 4, pesNumber, ram, bw, size, vmm, new CloudletSchedulerTimeShared());
-            //add the VMs to the vmList
-            vmlist.add(vm1);
-            vmlist.add(vm2);
-            vmlist.add(vm3);
-            vmlist.add(vm4);
-            int count = 10;
-            boolean start = false;
-            broker.submitVmList(vmlist);
-            cloudletList = new ArrayList<Cloudlet>();
-            
-            while(count-- > 0) {
-                cloudletList.add(addCloudlet(pesNumber));
-            }
-            broker.submitCloudletList(cloudletList);
-
-            
-            broker.startTimer();
-            // Sixth step: Starts the simulation
-            CloudSim.startSimulation();
-
-            // Final step: Print results when simulation is over
-            List<Cloudlet> newList = broker.getCloudletReceivedList();
-
-            CloudSim.stopSimulation();
-
-            printCloudletList(newList);
-
-            Log.printLine("CloudSimExample3 finished!");
-        } catch (Exception e) {
-            e.printStackTrace();
-            Log.printLine("The simulation has been terminated due to an unexpected error");
-        }
+			peNumForPerHost
+					.add(new Pe(peId, new PeProvisionerSimple(mips)));
+			peId++;
+		}
+    	myHost host = new myHost(0, new RamProvisionerSimple(ram),
+				new BwProvisionerSimple(bw), storage, peNumForPerHost,
+				new VmSchedulerTimeShared(peNumForPerHost), null);
+//    	double imF = 0;
+//    	for (int i = 0; i < 4; i++) {
+//    		imF = host.getVMImpactFactor(i);
+//    		System.out.println();
+//		}
+    	host.updateConfig();
+    	ArrayList<int []> l = host.getCurVmAvailableConfig();
+    	int[] res = new int[4];
+    	for (int[] is : l) {
+    		for (int i = 0; i < is.length; i++) {
+				res[i]+=is[i];
+			}
+			
+		}
+    	MathUtil.printArray(res, res.length);
+    	
     }
 
     private static Datacenter createDatacenter(String name) {

@@ -27,7 +27,7 @@ public class PowerModelSpecPowerHpProLiantMl110G5Xeon3075 extends PowerModelSpec
 
 	/** The power. */
 	private final double[] power = { 93.7, 97, 101, 105, 110, 116, 121, 125, 129, 133, 135 };
-
+	
 	/*
 	 * (non-Javadoc)
 	 * @see org.cloudbus.cloudsim.power.models.PowerModelSpecPower#getPowerData(int)

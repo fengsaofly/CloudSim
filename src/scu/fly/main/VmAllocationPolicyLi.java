@@ -140,6 +140,7 @@ public class VmAllocationPolicyLi extends VmAllocationPolicySimple {
 				myHost.cpuValuesList.get(host.getId()).add(cpuUtilization);
 				myHost.memValuesList.get(host.getId()).add(memUtilization);
 				myHost.timeValuesList.get(host.getId()).add(CloudSim.clock());
+				myHost.powerValuesList.get(host.getId()).add(host.getPower(cpuUtilization));
 				
 				myHost.sendMsgToDC(vm);
 

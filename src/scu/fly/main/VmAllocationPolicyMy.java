@@ -17,10 +17,13 @@ import common.Assert;
 public class VmAllocationPolicyMy extends VmAllocationPolicySimple {
 	public long usingTime = 0;
 	private int curNeedHandleVms = -1;
-	public int selectedHostIDs[] = { -1, -1, -1 };
+	public int selectedHostIDs[] ;
 	private int count = 0;// 记录当前vm处理数
 	private List<myVm> curVms = new CopyOnWriteArrayList<>();
 	int vmI = 0;
+	
+	double r = -1;
+	int lastHostId = -1;
 
 	public int getCurVmNums() {
 		return curNeedHandleVms;
@@ -34,6 +37,10 @@ public class VmAllocationPolicyMy extends VmAllocationPolicySimple {
 
 	public VmAllocationPolicyMy(List<? extends Host> list) {
 		super(list);
+		selectedHostIDs = new int[GlobalParameter.VM_TYPES];
+		for (int i = 0; i < selectedHostIDs.length; i++) {
+			selectedHostIDs[i] = -1;
+		}
 	}
 
 	@Override
@@ -55,28 +62,56 @@ public class VmAllocationPolicyMy extends VmAllocationPolicySimple {
 //			}
 			return result;
 		}
-		/** 类型已选择主机 **/
-//		else if (selectedHostIDs[vmType] != -1) {
-//			hostIndex = selectedHostIDs[vmType];
-//		}
+		/** 同一类型的VM **/
+		else if (selectedHostIDs[vmType] != -1) {
+			hostIndex = selectedHostIDs[vmType];
+		}
 
 		/*** 未分配 ***/
 		else {
-			int shortestQueue = Integer.MAX_VALUE;
-
-			for (int index = 0; index < getHostList().size(); index++) {
+			//未选择过
+			if(lastHostId == -1)
+			{
+				hostIndex = MathUtil.random(0, getHostList().size()-1);
+				lastHostId = hostIndex;
+			}
+			else{
+				
+				hostIndex = lastHostId;
+				myHost lastHost = (myHost)getHostList().get(lastHostId);
+				double shortestQueue = lastHost.getCurQueueLenList().get(vmType)*1.0/lastHost.r;//Integer.MAX_VALUE;
+				int index = lastHostId;
+				//直到选中的不是上一个主机
+				while (index==lastHostId) {
+					index = MathUtil.random(0, getHostList().size()-1);
+					
+				}
 				myHost myHost = (myHost) getHostList().get(index);
-				if ((shortestQueue > myHost.getCurQueueLenList().get(vmType))) {
-					shortestQueue = myHost.getCurQueueLenList().get(vmType);
+				double q = myHost.getCurQueueLenList().get(vmType)*1.0/myHost.r;
+				if ( shortestQueue >  q ) {
+					shortestQueue = q;
 					hostIndex = index;
 				}
 			}
+			
+			
+//			for (int index = 0; index < getHostList().size(); index++) {
+//				myHost myHost = (myHost) getHostList().get(index);
+//				double q = myHost.getCurQueueLenList().get(vmType)*1.0/myHost.r;
+//				if ( shortestQueue >  q ) {
+//					shortestQueue = q;
+//					hostIndex = index;
+//				}
+//			}
+		
 		}
 		chosenHost = (myHost) getHostList().get(hostIndex);
 
 		result = chosenHost.addVm(myVm);// 将vm加入vmList，更新可用存储资源，分配cpu和mem给该vm
 		selectedHostIDs[vmType] = hostIndex; // 将某一vm类型放入的host记录下来
 		myVm.setHostID(hostIndex);
+		
+		lastHostId = hostIndex;
 
 		Log.printLine("---Host" + hostIndex + ":VM" + myVm.getId()
 				+ ",Type" + myVm.getVmType() + "---");
@@ -108,7 +143,7 @@ public class VmAllocationPolicyMy extends VmAllocationPolicySimple {
 		int idx = host.getId();
 		int pes = getUsedPes().remove(vm.getUid());
 		host.vmDestroy(vm);
-		System.out.println(host.getId()+":"+host.getCurQueueLenList().get(0)+"-"+host.getCurQueueLenList().get(1)+"-"+host.getCurQueueLenList().get(2));
+		MathUtil.printArray(MathUtil.listToArray(host.getCurQueueLenList()), host.getCurQueueLenList().size()); 
 		if (host.canRun()) {
 			// System.out.println(host.getId() + "主机可以执行新任务了。。。");
 			host.run();// 继续执行下一个任务

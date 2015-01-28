@@ -8,9 +8,40 @@ public class woCloudlet extends Cloudlet implements Cloneable,
 		Comparable<woCloudlet> {
 
 	private double waitTime;
+	public void setWaitTime(double waitTime) {
+		this.waitTime = waitTime;
+	}
+
 	private int hostID = -1;
 	private myVm vm = null;
 	private int vmType = -1;
+	private int hostType = -1;
+	private double cpuS = -1;
+	private double memS = -1;
+
+	public double getCpuS() {
+		return cpuS;
+	}
+
+	public void setCpuS(double cpuS) {
+		this.cpuS = cpuS;
+	}
+
+	public double getMemS() {
+		return memS;
+	}
+
+	public void setMemS(double memS) {
+		this.memS = memS;
+	}
+
+	public int getHostType() {
+		return hostType;
+	}
+
+	public void setHostType(int hostType) {
+		this.hostType = hostType;
+	}
 
 	private int submitTime = -1;
 
@@ -77,14 +108,19 @@ public class woCloudlet extends Cloudlet implements Cloneable,
 
 	@Override
 	public int compareTo(woCloudlet o) {
-
-		if (getExecStartTime() < o.getExecStartTime()) {
+		if (getHostID() < o.getHostID()) {
 			return -1;
-		} else if (getExecStartTime() == o.getExecStartTime()) {
-			if (getHostID() < o.getHostID()) {
+		} else if (getHostID() == o.getHostID()) {
+			if (getFinishTime() < o.getFinishTime()) {
 				return -1;
+			} else if (getFinishTime() == o.getFinishTime()) {
+				if (getExecStartTime() < o.getExecStartTime()) {
+					return -1;
+				}
+				return 1;
 			}
 			return 1;
+
 		}
 		return 1;
 

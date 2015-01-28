@@ -59,6 +59,14 @@ public class VmAllocationPolicyRandom extends VmAllocationPolicySimple {
 					myHost.cpuValuesList.get(host.getId()).add(cpuUtilization);
 					myHost.memValuesList.get(host.getId()).add(memUtilization);
 					myHost.timeValuesList.get(host.getId()).add(CloudSim.clock());
+					
+					
+					System.out.println(cpuUtilization+" : "+memUtilization);
+					if(cpuUtilization>1 || memUtilization > 1){
+						System.out.println();
+						host.vmCreate(vm);
+					}
+					myHost.powerValuesList.get(host.getId()).add(host.getPower(cpuUtilization));
 					myHost.sendMsgToDC((myVm) vm);
 
 					result = true;

@@ -8,7 +8,15 @@ public class myVm extends Vm implements Cloneable{
 	
 	private int vmType;
 	private int hostID = -1;//用于标明VM所属的主机ID
-	
+	private double submitTime = -1;
+	public double getSubmitTime() {
+		return submitTime;
+	}
+
+	public void setSubmitTime(double submitTime) {
+		this.submitTime = submitTime;
+	}
+
 	public int getHostID() {
 		return hostID;
 	}

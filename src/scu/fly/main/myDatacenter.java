@@ -32,7 +32,7 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 	private List<myVm> onceSubmittedVmList = new ArrayList<myVm>();
 	private List<myVm> allSubmittedVmList = new ArrayList<myVm>();
 	private List<myVm> createdVmList = new ArrayList<myVm>();
-	private List<myVm> addedVmList = new ArrayList<myVm>();
+//	private List<myVm> addedVmList = new ArrayList<myVm>();
 	private Integer currentRequests = -1;
 	public static boolean cloudletHasBeenSubmitted = false;
 
@@ -88,11 +88,11 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 
 		if (getVmAllocationPolicy().getClass() == VmAllocationPolicyMy.class)
 			sendPolicyCurResquestNums();
-		onceSubmittedVmList.add((myVm) ev.getData());
+//		onceSubmittedVmList.add((myVm) ev.getData());
 		Vm vm = (Vm) ev.getData();
 		// finishFlag++;
 //		System.out.println("当前任务量："+currentRequests);
-		addedVmList.add((myVm) vm);
+//		addedVmList.add((myVm) vm);
 		// getCharacteristics().
 		boolean result = getVmAllocationPolicy().allocateHostForVm(vm);
 
@@ -165,13 +165,13 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 		return vmExcuteThread;
 	}
 
-	public boolean vmListFnished() {
-		if (onceSubmittedVmList.size() > 0
-				&& onceSubmittedVmList.size() == createdVmList.size()
-				&& createdVmList.size() == addedVmList.size())
-			return true;
-		return false;
-	}
+//	public boolean vmListFnished() {
+//		if (onceSubmittedVmList.size() > 0
+//				&& onceSubmittedVmList.size() == createdVmList.size()
+//				&& createdVmList.size() == addedVmList.size())
+//			return true;
+//		return false;
+//	}
 
 	@Override
 	/**
@@ -230,7 +230,7 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 			double fileTransferTime = predictFileTransferTime(cl
 					.getRequiredFiles());
 
-			Host host = getVmAllocationPolicy().getHost(vmId, userId);
+			myHost host = (myHost)getVmAllocationPolicy().getHost(vmId, userId);
 			Vm vm = host.getVm(vmId, userId);
 			CloudletScheduler scheduler = vm.getCloudletScheduler();
 			double estimatedFinishTime = scheduler.cloudletSubmit(cl,
@@ -239,6 +239,21 @@ public class myDatacenter extends Datacenter implements MyCallInterface {
 			// 设置cloudlet的Host
 			if (cl.getHostID() == -1)
 				cl.setHostID(host.getId());
+			//设置cloudlet的hostType
+			if (cl.getHostType() == -1)
+				cl.setHostType(host.getHostType());
+			if (cl.getCpuS() == -1)
+			{
+				double cpuS = GlobalParameter.VM_PES[cl.getVmType()]*1.0/GlobalParameter.HOST_PES[host.getHostType()];
+				cl.setCpuS(cpuS);
+			}
+			if (cl.getMemS() == -1)
+			{
+				double memS = GlobalParameter.VM_RAM[cl.getVmType()]*1.0/GlobalParameter.HOST_RAM[host.getHostType()];
+				cl.setMemS(memS);
+			}	
+			
+			
 
 			// if this cloudlet is in the exec queue
 			if (estimatedFinishTime > 0.0

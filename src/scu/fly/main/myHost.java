@@ -27,39 +27,35 @@ import jxl.write.WriteException;
 
 public class myHost extends PowerHost implements Runnable {
 
-	private ArrayList<int[]> vmTotalConfigs;
+//	private ArrayList<int[]> vmTotalConfigs;
 	protected ArrayList<int[]> curVmAvailableConfig;
-
-	public void setCurVmAvailableConfig(ArrayList<int[]> curVmAvailableConfig) {
-		this.curVmAvailableConfig = curVmAvailableConfig;
-	}
-
-	protected ArrayList<double[]> vmMCSList;
+//	protected ArrayList<double[]> vmMCSList;
 	protected List<Integer> curQueueLenList;
 	protected List<List<myVm>> waitVmsQueue;
 	protected List<myVm> curChosenQueue;
-	private Timer timer = null;
-	private int processNum = 0;
-	private boolean timerStarted = false;
+
 	public static SimpleExcelWrite excelWrite = SimpleExcelWrite.getInstance();
-	private int count = 1;
+
 	public static boolean firstNotification = true;
 	private static myDatacenter mc = null;
 	private static double curSynUtilization1 = 0.0;
 	private static double curSynUtilization2 = 0.0;
 	public static int scheduleMethod = 0;
-
 	public int row = 1;
+	private int hostType = -1;
 
 	public static ArrayList<ArrayList> cpuValuesList;
 	public static ArrayList<ArrayList> memValuesList;
+	public static ArrayList<ArrayList> powerValuesList;
 	public static ArrayList<ArrayList> timeValuesList;
 	public static ArrayList<Double> sysUtilizationValues;
+	public static ArrayList<Integer> hostTypeList = new ArrayList<>();;
 	
 	public  double IR = 0;
 	public  double ILB = 0;
 	public  double cpuU = 0;
 	public  double memU = 0;
+	public 	double r = -1;//队列因子
 
 	// private myThread thread = new myThread(this);
 
@@ -70,19 +66,18 @@ public class myHost extends PowerHost implements Runnable {
 		super(id, ramProvisioner, bwProvisioner, storage, peList, vmScheduler,
 				powerModel);
 
-		vmTotalConfigs = new ArrayList<int[]>();
-		vmTotalConfigs.add(new int[] { 2, 0, 0 });
-		vmTotalConfigs.add(new int[] { 0, 1, 1 });
-		vmTotalConfigs.add(new int[] { 1, 0, 1 });
+//		vmTotalConfigs = new ArrayList<int[]>();
+//		vmTotalConfigs.add(new int[] { 2, 0, 0 });
+//		vmTotalConfigs.add(new int[] { 0, 1, 1 });
+//		vmTotalConfigs.add(new int[] { 1, 0, 1 });
 
-		curVmAvailableConfig = new ArrayList<int[]>(vmTotalConfigs.size());
-		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
+//		curVmAvailableConfig = new ArrayList<int[]>(vmTotalConfigs.size());
+//		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
+		
+		curVmAvailableConfig = new ArrayList<int[]>();
 
 		curChosenQueue = new ArrayList<myVm>();
 
-		vmMCSList = new ArrayList<double[]>();
-		vmMCSList.add(new double[] { 15, 17.1, 7 });
-		vmMCSList.add(new double[] { 8, 6, 20 });
 
 		this.initialQueue();
 		this.initialQueueLenth();
@@ -91,6 +86,13 @@ public class myHost extends PowerHost implements Runnable {
 			cpuValuesList = new ArrayList<ArrayList>();
 			for (int i = 0; i < 100; i++) {
 				cpuValuesList.add(new ArrayList());
+			}
+		}
+		
+		if (powerValuesList == null || powerValuesList.size() == 0) {
+			powerValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 100; i++) {
+				powerValuesList.add(new ArrayList());
 			}
 		}
 		
@@ -108,111 +110,171 @@ public class myHost extends PowerHost implements Runnable {
 		}
 
 		sysUtilizationValues = new ArrayList<Double>();
+		
+
+	}
+	public myHost(int id, RamProvisioner ramProvisioner,
+			BwProvisioner bwProvisioner, long storage,
+			List<? extends Pe> peList, VmScheduler vmScheduler,
+			PowerModel powerModel,int type) {
+		super(id, ramProvisioner, bwProvisioner, storage, peList, vmScheduler,
+				powerModel);
+		
+		curVmAvailableConfig = new ArrayList<int[]>();
+
+		curChosenQueue = new ArrayList<myVm>();
+
+
+		this.initialQueue();
+		this.initialQueueLenth();
+
+		if (cpuValuesList == null || cpuValuesList.size() == 0) {
+			cpuValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 100; i++) {
+				cpuValuesList.add(new ArrayList());
+			}
+		}
+		if (powerValuesList == null || powerValuesList.size() == 0) {
+			powerValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 100; i++) {
+				powerValuesList.add(new ArrayList());
+			}
+		}
+		if (timeValuesList == null || timeValuesList.size() == 0) {
+			timeValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 101; i++) {
+				timeValuesList.add(new ArrayList());
+			}
+		}
+		if (memValuesList == null || memValuesList.size() == 0) {
+			memValuesList = new ArrayList<ArrayList>();
+			for (int i = 0; i < 100; i++) {
+				memValuesList.add(new ArrayList());
+			}
+		}
+
+		sysUtilizationValues = new ArrayList<Double>();
+		
+		hostType = type;
+
+		
+		
+		updateConfig();
 
 	}
 
 	private void initialQueueLenth() {
 
-		curQueueLenList = new ArrayList<Integer>(waitVmsQueue.size());
-		for (int i = 0; i < waitVmsQueue.size(); i++) {
+		curQueueLenList = new ArrayList<Integer>(GlobalParameter.VM_TYPES);
+		for (int i = 0; i < GlobalParameter.VM_TYPES; i++) {
 			curQueueLenList.add(0);
 		}
 	}
 
 	private void initialQueue() {
 
-		waitVmsQueue = new ArrayList<List<myVm>>(3);
-
-		ArrayList<myVm> vmlist1 = new ArrayList<myVm>();
-		// waitVmsQueue.set(0, vmlist1);
-		ArrayList<myVm> vmlist2 = new ArrayList<myVm>();
-		ArrayList<myVm> vmlist3 = new ArrayList<myVm>();
-		waitVmsQueue.add(vmlist1);
-		waitVmsQueue.add(vmlist2);
-		waitVmsQueue.add(vmlist3);
-	}
-
-	public ArrayList<int[]> getVmConfig() {
-		return vmTotalConfigs;
-
-	}
-
-	public void resetCurVmConfig() {
-		curVmAvailableConfig.clear();
-		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
-	}
-
-	public void updateVmAvailableConfig(List<Vm> vmList) {
-		int[] curVmList = new int[] { 0, 0, 0 };
-		ArrayList<int[]> tempVmConfig = new ArrayList<int[]>();
-		int distance = 0;
-
-		for (Vm vm : vmList) {
-			myVm curVm = (myVm) vm;
-			curVmList[curVm.getVmType()]++;
+		waitVmsQueue = new ArrayList<List<myVm>>(GlobalParameter.VM_TYPES);
+		
+		
+		for (int i = 0; i < GlobalParameter.VM_TYPES; i++) {
+			ArrayList<myVm> vmlist = new ArrayList<myVm>();
+			waitVmsQueue.add(vmlist);
 		}
-		// curVmList =new int[]{2,0,0};
-		for (int index = 0; index < curVmAvailableConfig.size(); index++) {
-
-			int[] tempAvailableConfig = curVmAvailableConfig.get(index).clone();
-			// 如果curVmList
-
-			for (int vmId = 0; vmId < tempAvailableConfig.length; vmId++) {
-
-				tempAvailableConfig[vmId] = tempAvailableConfig[vmId]
-						+ curVmList[vmId];
-
-			}
-			for (int[] oneTopConfig : vmTotalConfigs) {
-				if (Arrays.equals(oneTopConfig, tempAvailableConfig)) {
-					curVmAvailableConfig.clear();
-					curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs
-							.clone();
-					return;
-				}
-			}
-
-			tempVmConfig.add(tempAvailableConfig);
-
-		}
-		curVmAvailableConfig.clear();
-		curVmAvailableConfig = (ArrayList<int[]>) tempVmConfig.clone();
 
 	}
 
-	public void updateVmAvailableConfig() {
-		int[] curVmList = new int[] { 0, 0, 0 };
-		ArrayList<int[]> tempVmConfig = new ArrayList<int[]>();
-		int distance = 0;
-
-		for (Vm vm : getVmList()) {
-			myVm curVm = (myVm) vm;
-			curVmList[curVm.getVmType()]++;
-		}
-		// curVmList =new int[]{2,0,0};
-		for (int index = 0; index < vmTotalConfigs.size(); index++) {
-
-			int[] tempTotalConfig = vmTotalConfigs.get(index).clone();
-			if (tempTotalConfig.equals(curVmList)) {
-				curVmAvailableConfig.clear();
-				curVmAvailableConfig.add(new int[] { 0, 0, 0 });
-				return;
-			}
-			for (int vmId = 0; vmId < tempTotalConfig.length; vmId++) {
-
-				distance = tempTotalConfig[vmId] - curVmList[vmId];
-				if (distance < 0)
-					break;
-				tempTotalConfig[vmId] = distance;
-			}
-			if (distance >= 0)
-				tempVmConfig.add(tempTotalConfig);
-
-		}
-		curVmAvailableConfig.clear();
-		curVmAvailableConfig = (ArrayList<int[]>) tempVmConfig.clone();
-
+	public int getHostType() {
+		return hostType;
 	}
+
+	public void setHostType(int hostType) {
+		this.hostType = hostType;
+	}
+	
+	public void setCurVmAvailableConfig(ArrayList<int[]> curVmAvailableConfig) {
+		this.curVmAvailableConfig = curVmAvailableConfig;
+	}
+//	public ArrayList<int[]> getVmConfig() {
+//		return vmTotalConfigs;
+//
+//	}
+//
+//	public void resetCurVmConfig() {
+//		curVmAvailableConfig.clear();
+//		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
+//	}
+
+//	public void updateVmAvailableConfig(List<Vm> vmList) {
+//		int[] curVmList = new int[] { 0, 0, 0 };
+//		ArrayList<int[]> tempVmConfig = new ArrayList<int[]>();
+//		int distance = 0;
+//
+//		for (Vm vm : vmList) {
+//			myVm curVm = (myVm) vm;
+//			curVmList[curVm.getVmType()]++;
+//		}
+//		// curVmList =new int[]{2,0,0};
+//		for (int index = 0; index < curVmAvailableConfig.size(); index++) {
+//
+//			int[] tempAvailableConfig = curVmAvailableConfig.get(index).clone();
+//			// 如果curVmList
+//
+//			for (int vmId = 0; vmId < tempAvailableConfig.length; vmId++) {
+//
+//				tempAvailableConfig[vmId] = tempAvailableConfig[vmId]
+//						+ curVmList[vmId];
+//
+//			}
+//			for (int[] oneTopConfig : vmTotalConfigs) {
+//				if (Arrays.equals(oneTopConfig, tempAvailableConfig)) {
+//					curVmAvailableConfig.clear();
+//					curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs
+//							.clone();
+//					return;
+//				}
+//			}
+//
+//			tempVmConfig.add(tempAvailableConfig);
+//
+//		}
+//		curVmAvailableConfig.clear();
+//		curVmAvailableConfig = (ArrayList<int[]>) tempVmConfig.clone();
+//
+//	}
+
+//	public void updateVmAvailableConfig() {
+//		int[] curVmList = new int[] { 0, 0, 0 };
+//		ArrayList<int[]> tempVmConfig = new ArrayList<int[]>();
+//		int distance = 0;
+//
+//		for (Vm vm : getVmList()) {
+//			myVm curVm = (myVm) vm;
+//			curVmList[curVm.getVmType()]++;
+//		}
+//		// curVmList =new int[]{2,0,0};
+//		for (int index = 0; index < vmTotalConfigs.size(); index++) {
+//
+//			int[] tempTotalConfig = vmTotalConfigs.get(index).clone();
+//			if (tempTotalConfig.equals(curVmList)) {
+//				curVmAvailableConfig.clear();
+//				curVmAvailableConfig.add(new int[] { 0, 0, 0 });
+//				return;
+//			}
+//			for (int vmId = 0; vmId < tempTotalConfig.length; vmId++) {
+//
+//				distance = tempTotalConfig[vmId] - curVmList[vmId];
+//				if (distance < 0)
+//					break;
+//				tempTotalConfig[vmId] = distance;
+//			}
+//			if (distance >= 0)
+//				tempVmConfig.add(tempTotalConfig);
+//
+//		}
+//		curVmAvailableConfig.clear();
+//		curVmAvailableConfig = (ArrayList<int[]>) tempVmConfig.clone();
+//
+//	}
 
 	public ArrayList<int[]> getCurVmAvailableConfig() {
 		return curVmAvailableConfig;
@@ -263,92 +325,39 @@ public class myHost extends PowerHost implements Runnable {
 	}
 
 	private void beginVMsAllocation() {
-		boolean successGetConfig = false;
-		List<List<myVm>> finalWQ = new ArrayList<List<myVm>>(waitVmsQueue);
-		List<myVm> finalCQ = new ArrayList<myVm>(curChosenQueue);
-		List<List<myVm>> waitVmsQueue1 = new ArrayList<List<myVm>>(
-				waitVmsQueue.size());
+		boolean success = false;
 
-		for (int i = 0; i < waitVmsQueue.size(); i++) {
-
-			List<myVm> list = new ArrayList<>(waitVmsQueue.get(i).size());
-			List<myVm> list2 = waitVmsQueue.get(i);
-			for (myVm myVm : list2) {
-				try {
-					list.add(myVm.clone());
-				} catch (CloneNotSupportedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
-			}
-			waitVmsQueue1.add(list);
-		}
-		List<myVm> curChosenQueue1 = new ArrayList<myVm>(curChosenQueue.size());
-
-		for (myVm myVm : curChosenQueue) {
-			try {
-				curChosenQueue1.add(myVm.clone());
-			} catch (CloneNotSupportedException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
 
 		switch (scheduleMethod) {
 		case 0:
-			successGetConfig = getConfigFromMySchedulingAlgorithm();
-//			finalWQ = new ArrayList<List<myVm>>(waitVmsQueue);
-//			finalCQ = new ArrayList<myVm>(curChosenQueue);
-//			waitVmsQueue = new ArrayList<List<myVm>>(waitVmsQueue1);
-//			curChosenQueue = new ArrayList<myVm>(curChosenQueue1);
-//			getConfigFromStochasticSchedulingAlgorithm();
-//
-//			waitVmsQueue = finalWQ;
-//			curChosenQueue = finalCQ;
-//			compareMethod();
+			success = getConfigFromMySchedulingAlgorithm();
 			break;
 		case 1:
-			successGetConfig = getConfigFromStochasticSchedulingAlgorithm();
+			success = getConfigFromStochasticSchedulingAlgorithm();
 			break;
 		case 2:
-			successGetConfig = getConfigFroMIUS();
+			success = getConfigFroMIUS();
 			break;	
 		default:
 			break;
 		}
 
-		if (!successGetConfig) {
+		if (!success) {
 			Log.printLine("在主机" + this.getId() + "上获取可用配置失败！");
 			return;
 		}
-
+		
 		// 如果成功获取配置,则创建选择的vms，并在等待队列中删除选中的vms
 		for (myVm vm : curChosenQueue) {
-			if (vmCreate(vm))
+			if ( (success=vmCreate(vm)) ){
 				sendMsgToDC(vm);
+			}
+				
 
 		}
-		// 创建vm之后，更新可用的vm配置——curVmAvailableConfigs
-		updateVmAvailableConfig();
-
-		// Log.printLine("主机"+this.getId()+"可用的配置为:");
-		// 更新可用的虚拟机配置——curVmAvailableConfig
-
-		// synchronized (curVmAvailableConfig) {
-		// for(int[] config:getCurVmAvailableConfig())
-		// {
-		// if(config==null || Arrays.equals(new int[]{0,0,0},config))
-		// {
-		// Log.printLine("空");
-		// break;
-		// }
-		// printArray(config);
-		//
-		//
-		// }
-		// }
-		//
-		// Log.printLine();
+		//更新配置
+		if(success)
+			updateConfig();
 
 	}
 
@@ -359,10 +368,6 @@ public class myHost extends PowerHost implements Runnable {
 			waitVmsQueue.get(typeId).remove(vm);
 			updateCurQueueLenList(typeId);
 		}
-		// if(waitVmsQueue.isEmpty() || waitVmsQueue.get(0).isEmpty())
-		// {
-		// //等待队列为空
-		// }
 
 	}
 
@@ -404,9 +409,9 @@ public class myHost extends PowerHost implements Runnable {
 
 	public boolean getConfigFromMySchedulingAlgorithm() {
 
-		int multiple = 2;
+		int multiple = 2;//阈值，表示队列长度的两倍就到达阈值
 		double maxWeight = Integer.MIN_VALUE;
-		int[] chosenConfig = new int[] { 0, 0, 0 };
+		int[] chosenConfig = new int[GlobalParameter.VM_TYPES];
 
 		// 获取可用配置
 		@SuppressWarnings("unchecked")
@@ -421,8 +426,8 @@ public class myHost extends PowerHost implements Runnable {
 
 		// 可用配置去重
 		actualAvailableConfig = (ArrayList<int[]>) removeDuplicate(actualAvailableConfig);
-		if (actualAvailableConfig.contains(new int[] { 0, 0, 0 }))
-			return false;
+//		if (actualAvailableConfig.contains(new int[] { 0, 0, 0 }))
+//			return false;
 
 		double maxWeightCPU = 0, maxWeightMEM = 0;
 		boolean needHandleLimit = false;
@@ -448,8 +453,8 @@ public class myHost extends PowerHost implements Runnable {
 				// 否则，选取综合利用率最大的
 				if (curAvailableConfig[j] == 0)
 					continue;
-				tempWeightMEM += curAvailableConfig[j] * vmMCSList.get(0)[j];
-				tempWeightCPU += curAvailableConfig[j] * vmMCSList.get(1)[j];
+				tempWeightMEM += curAvailableConfig[j] * GlobalParameter.VM_RAM[j];
+				tempWeightCPU += curAvailableConfig[j] * GlobalParameter.VM_PES[j];
 
 			}
 			// 需要处理阈值，直接跳出
@@ -459,15 +464,15 @@ public class myHost extends PowerHost implements Runnable {
 				for (int vmType = 0; vmType < chosenConfig.length; vmType++) {
 					int choseNum = chosenConfig[vmType];
 					for (int num = 0; num < choseNum; num++) {
-						maxWeightCPU += vmMCSList.get(0)[vmType];
-						maxWeightMEM += vmMCSList.get(1)[vmType];
+						maxWeightCPU += GlobalParameter.VM_PES[vmType];
+						maxWeightMEM += GlobalParameter.VM_RAM[vmType];
 					}
 				}
 				break;
 			}
 			// 选择最大的权重配置
 			tempWeight = (tempWeightCPU / this.getNumberOfPes() + tempWeightMEM
-					/ this.getRam() * 1000) / 2.0;
+					/ this.getRam()  ) / 2.0;
 			if (tempWeight > maxWeight) {
 				maxWeightCPU = tempWeightCPU;
 				maxWeightMEM = tempWeightMEM;
@@ -475,7 +480,7 @@ public class myHost extends PowerHost implements Runnable {
 				chosenConfig = curAvailableConfig.clone();
 			}
 		}
-		maxWeightMEM = maxWeightMEM * 1000;// GB->MB
+//		maxWeightMEM = maxWeightMEM * 1000;// GB->MB
 		for (Vm vm : this.getVmList()) {
 			maxWeightCPU += vm.getNumberOfPes();
 			maxWeightMEM += vm.getRam();
@@ -495,6 +500,7 @@ public class myHost extends PowerHost implements Runnable {
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
 		timeValuesList.get(getId()).add(CloudSim.clock());
+		powerValuesList.get(getId()).add(getPower(cpuShare));
 		// 若chosenConfig不为空，则根据配置进行VM选择
 		curChosenQueue.clear();
 
@@ -510,62 +516,42 @@ public class myHost extends PowerHost implements Runnable {
 
 			}
 		}
-		// update available vm config ---curVmAvailableConfig
-		// for(int[] curAvailableConfig : curVmAvailableConfig){
-		// int tempWeight = 0;
-		// for(int tempVmAvailableIndex = 0 ;tempVmAvailableIndex <
-		// curAvailableConfig.length ; tempVmAvailableIndex++){
-		//
-		// }
-		// }
 		Log.printLine("chosenConfig = " + printArray(chosenConfig));
-		// 查看是否有等待任务
-		// for(List<myVm> vm:waitVmsQueue)
-		// {
-		// if(vm.size()!=0){
-		// return true;
-		// }
-		// else continue;
-		// }
-		// Log.printLine("主机"+this.getId()+"暂时没有新任务！");
+
 		return true;
 	}
 
 	public boolean getConfigFroMIUS() {
-		
-//		curQueueLenList.set(0, 1);
-//		curQueueLenList.set(1, 1);
-//		curQueueLenList.set(2, 1);
-//		curVmAvailableConfig = (ArrayList<int[]>) vmTotalConfigs.clone();
-		
+
 		double maxWeight = Integer.MIN_VALUE;
-		int[] chosenConfig = new int[] { 0, 0, 0 };
+		int[] chosenConfig = new int[GlobalParameter.VM_TYPES];
 		for (int[] curAvailableConfig : curVmAvailableConfig) {
-			if (Arrays.equals(curAvailableConfig, new int[] { 0, 0, 0 }))
-				return false;
+			
+			int[] actConfig = new int[curAvailableConfig.length];
+			for (int i = 0; i < actConfig.length; i++) {
+				actConfig[i] = Math.min(curAvailableConfig[i], curQueueLenList.get(i));
+			}
+
 			double tempWeight = 0;
-			for (int tempVmAvailableIndex = 0; tempVmAvailableIndex < curAvailableConfig.length; tempVmAvailableIndex++) {
-				tempWeight += curAvailableConfig[tempVmAvailableIndex]
-						* curQueueLenList.get(tempVmAvailableIndex)*getVMImpactFactor(tempVmAvailableIndex);
+			for (int i = 0; i < curAvailableConfig.length; i++) {
+				tempWeight += actConfig[i]* curQueueLenList.get(i)*getVMImpactFactor(i);
 			}
 			if (tempWeight > maxWeight) {
 				maxWeight = tempWeight;
-				chosenConfig = curAvailableConfig.clone();
+				chosenConfig = actConfig.clone();
 			}
 		}
-		for (int i = 0; i < chosenConfig.length; i++) {
-			chosenConfig[i] = Math.min(chosenConfig[i], curQueueLenList.get(i));
-		}
+
 		double WeightCPU = 0, WeightMEM = 0;
 		for (int i = 0; i < chosenConfig.length; i++) {
 			for (int j = 0; j < chosenConfig[i]; j++) {
-				WeightMEM += vmMCSList.get(0)[i];
-				WeightCPU += vmMCSList.get(1)[i];
+				WeightMEM += GlobalParameter.VM_RAM[i];
+				WeightCPU += GlobalParameter.VM_PES[i];
 			}
 
 		}
 
-		WeightMEM = WeightMEM * 1000;
+//		WeightMEM = WeightMEM * 1000;
 		// 若chosenConfig不为空，则根据配置进行VM选择
 		for (Vm vm : this.getVmList()) {
 			WeightCPU += vm.getNumberOfPes();
@@ -584,16 +570,21 @@ public class myHost extends PowerHost implements Runnable {
 		Log.printLine(now+"--- MIUS:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
 				+ ",mem利用率为：" + memShare + "综合利用率为：" + sysShare);
 		curSynUtilization2 = sysShare;
-		
+		if(cpuShare > 1 || memShare > 1 ){
+			Log.printLine(now+"--- MIUS:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
+					+ ",mem利用率为：" + memShare + "综合利用率为：" + sysShare);
+		}
 		
 		
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
 		timeValuesList.get(getId()).add(now);
+		powerValuesList.get(getId()).add(getPower(cpuShare));
+		
 		
 		
 		curChosenQueue.clear();
-
+		//更新curChosenQueue与waitVmsQueue
 		for (int vmType = 0; vmType < chosenConfig.length; vmType++) {
 
 			for (int numOfvmType = 0; numOfvmType < chosenConfig[vmType]; numOfvmType++) {
@@ -609,72 +600,85 @@ public class myHost extends PowerHost implements Runnable {
 
 		return true;
 	}
+	/**
+	 * 获得vmi类VM对于Host的影响因子
+	 * @param vmi
+	 * @return
+	 */
+	public double getVMImpactFactor(int vmi) {
 
-	private double getVMImpactFactor(int tempVmAvailableIndex) {
-		double IF = 0;
-		switch (tempVmAvailableIndex) {
-		case 0:
-			IF =  0.383;
-			break;
-		case 1:
-			IF =  0.393;
-			break;
-		case 2:
-			IF =  0.450;
-			break;
-		default:
-			break;
+		double imFactor = 0;
+		for (int i = 0; i < GlobalParameter.HOST_RESOURCES; i++) {
+			if(i==0)
+				imFactor+=GlobalParameter.VM_PES[vmi]*1.0/getNumberOfPes();
+			else if(i==1)
+				imFactor+=GlobalParameter.VM_RAM[vmi]*1.0/getRamProvisioner().getAvailableRam();
 		}
-		return IF;
+		return imFactor;
+		
 	}
 
 	private boolean getConfigFromStochasticSchedulingAlgorithm() {
 
-		int maxWeight = Integer.MIN_VALUE;
-		int[] chosenConfig = new int[] { 0, 0, 0 };
+		double maxWeight = Integer.MIN_VALUE;
+		int[] chosenConfig = new int[GlobalParameter.VM_TYPES];
 		for (int[] curAvailableConfig : curVmAvailableConfig) {
-			if (Arrays.equals(curAvailableConfig, new int[] { 0, 0, 0 }))
-				return false;
-			int tempWeight = 0;
-			for (int tempVmAvailableIndex = 0; tempVmAvailableIndex < curAvailableConfig.length; tempVmAvailableIndex++) {
-				tempWeight += curAvailableConfig[tempVmAvailableIndex]
-						* curQueueLenList.get(tempVmAvailableIndex);
+			
+			int[] actConfig = new int[curAvailableConfig.length];
+			for (int i = 0; i < actConfig.length; i++) {
+				actConfig[i] = Math.min(curAvailableConfig[i], curQueueLenList.get(i));
+			}
+
+			double tempWeight = 0;
+			for (int i = 0; i < curAvailableConfig.length; i++) {
+				tempWeight += actConfig[i]* curQueueLenList.get(i);
 			}
 			if (tempWeight > maxWeight) {
 				maxWeight = tempWeight;
-				chosenConfig = curAvailableConfig.clone();
+				chosenConfig = actConfig.clone();
 			}
 		}
-		for (int i = 0; i < chosenConfig.length; i++) {
-			chosenConfig[i] = Math.min(chosenConfig[i], waitVmsQueue.get(i)
-					.size());
-		}
+
 		double WeightCPU = 0, WeightMEM = 0;
 		for (int i = 0; i < chosenConfig.length; i++) {
 			for (int j = 0; j < chosenConfig[i]; j++) {
-				WeightMEM += vmMCSList.get(0)[i];
-				WeightCPU += vmMCSList.get(1)[i];
+				WeightMEM += GlobalParameter.VM_RAM[i];
+				WeightCPU += GlobalParameter.VM_PES[i];
 			}
 
 		}
 
-		WeightMEM = WeightMEM * 1000;
+//		WeightMEM = WeightMEM * 1000;
 		// 若chosenConfig不为空，则根据配置进行VM选择
 		for (Vm vm : this.getVmList()) {
 			WeightCPU += vm.getNumberOfPes();
 			WeightMEM += vm.getRam();
 		}
+		
+		Log.printLine("chosenConfig = " + printArray(chosenConfig));
+		
+		
 		double cpuShare = WeightCPU / this.getNumberOfPes();
 		double memShare = WeightMEM / this.getRam();// GB->MB
 		double sysShare = (cpuShare + memShare) / 2.0;
-		Log.printLine("other:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
+		
+		double now = CloudSim.clock();
+		
+		Log.printLine(now+"    Other:当前主机" + this.getId() + "的cpu利用率为：" + cpuShare
 				+ ",mem利用率为：" + memShare + "综合利用率为：" + sysShare);
 		curSynUtilization2 = sysShare;
+		
+		
+		
 		cpuValuesList.get(getId()).add(cpuShare);
 		memValuesList.get(getId()).add(memShare);
-		timeValuesList.get(getId()).add(CloudSim.clock());
+		timeValuesList.get(getId()).add(now);
+		powerValuesList.get(getId()).add(getPower(cpuShare));
+		
+		
+		
 		curChosenQueue.clear();
-
+		//更新curChosenQueue与waitVmsQueue
 		for (int vmType = 0; vmType < chosenConfig.length; vmType++) {
 
 			for (int numOfvmType = 0; numOfvmType < chosenConfig[vmType]; numOfvmType++) {
@@ -686,7 +690,7 @@ public class myHost extends PowerHost implements Runnable {
 			}
 		}
 
-		Log.printLine("chosenConfig = " + printArray(chosenConfig));
+		
 
 		return true;
 	}
@@ -765,38 +769,67 @@ public class myHost extends PowerHost implements Runnable {
 		if (vm != null) {
 			vmDeallocate(vm);
 			getVmList().remove(vm);
-			recoverHostConfig(vm);
-			vm.setHost(null);
+			updateConfig();
 
+			vm.setHost(null);
+			Log.printLine("主机" + getId() + "可用的配置已经更新!AvailableConfigs="
+					+ getCurVmAvailableConfig());
 		}
 	}
 
 	// 更新主机的可用vm配置
-	public void recoverHostConfig(Vm vm) {
-
-		myHost host = (myHost) vm.getHost();
-		if (host != null) {
-			ArrayList<Vm> curVmList = new ArrayList<Vm>();
-			curVmList.add(vm);
-			host.updateVmAvailableConfig(curVmList);
-			Log.printLine("主机" + host.getId() + "可用的配置已经更新!AvailableConfigs="
-					+ host.getCurVmAvailableConfig());
-		}
-	}
-
+//	public void recoverHostConfig(Vm vm) {
+//
+//		myHost host = (myHost) vm.getHost();
+//		if (host != null) {
+//			ArrayList<Vm> curVmList = new ArrayList<Vm>();
+//			curVmList.add(vm);
+//			host.updateConfig();
+//			Log.printLine("主机" + host.getId() + "可用的配置已经更新!AvailableConfigs="
+//					+ host.getCurVmAvailableConfig());
+//		}
+//	}
+	/**
+	 * 选择类型为type的VM最大的配置，其他配置都为0
+	 * @param type
+	 * @return
+	 */
 	public int[] maxWeightConfigForVMType(int type) {
-		int[] targetConfig = null;
-		switch (type) {
-		case 0:
-			targetConfig = vmTotalConfigs.get(0).clone();
-			break;
-		case 1:
-			targetConfig = vmTotalConfigs.get(1).clone();
-			break;
-		case 2:
-			targetConfig = vmTotalConfigs.get(2).clone();
-			break;
+		int[] targetConfig = new int[GlobalParameter.VM_TYPES];
+
+		int [] curHostConfig = new int[GlobalParameter.HOST_RESOURCES];
+		
+
+
+		
+		for (int i = 0; i < curHostConfig.length; i++) {
+			if(i==0)
+				curHostConfig[i] = getNumberOfPes() ;
+			else if(i==1)
+				curHostConfig[i] = getRamProvisioner().getAvailableRam();
+			else if(i==2)
+				curHostConfig[i] = (int) getStorage();
 		}
+
+			
+		int max = Integer.MAX_VALUE;
+		
+		int cpu = GlobalParameter.VM_PES[type];
+		int mem = GlobalParameter.VM_RAM[type];
+		for(int i=0 ; i<GlobalParameter.HOST_RESOURCES;i++)
+		{
+			int n = 0 ;
+			if(i==0)
+				n = curHostConfig[i] / cpu;
+			else if(i==1)
+				n = curHostConfig[i] / mem;
+			if(n<max)
+			{
+				max = n;
+			}
+				
+		}
+		targetConfig[type] = max;
 
 		for (int i = 0; i < targetConfig.length; i++) {
 			targetConfig[i] = Math.min(targetConfig[i], curQueueLenList.get(i));
@@ -819,13 +852,6 @@ public class myHost extends PowerHost implements Runnable {
 
 	}
 
-	public void timerStop() {
-		// Log.printLine("主机"+getId());
-		if (timerStarted) {
-			timer.cancel();
-			// Log.printLine("主机"+getId()+"的timer关闭了·");
-		}
-	}
 
 	public void compareMethod() {
 		sysUtilizationValues.add(curSynUtilization1 - curSynUtilization2);
@@ -859,13 +885,15 @@ public class myHost extends PowerHost implements Runnable {
 	
 	public boolean canRun()
 	{
-		int [] waitQList = MathUtil.listToArray(curQueueLenList) ;
-		//没有等待任务
-		if(waitQList.equals(new int[]{0,0,0}))
+		if(wqEmpty())
 		{
 			return false;
 		}
+		int [] waitQList = MathUtil.listToArray(curQueueLenList) ;
+		//没有等待任务
+	
 		boolean canRun = false;
+	
 		for (int i = 0; i < curVmAvailableConfig.size(); i++) {
 			int [] oneConfig = curVmAvailableConfig.get(i) ;
 			
@@ -923,6 +951,133 @@ public class myHost extends PowerHost implements Runnable {
 			for (List<Double> list : timeValuesList) {
 				list.clear();
 			}
+		}
+	}
+	public  void updateConfig(){
+		
+		curVmAvailableConfig.clear();
+		
+		int [] curHostConfig = new int[GlobalParameter.HOST_RESOURCES];
+		
+		int usedPes = 0;
+		for (Vm myVm : getVmList()) {
+			usedPes += myVm.getNumberOfPes();
+		}
+
+		
+		for (int i = 0; i < curHostConfig.length; i++) {
+			if(i==0)
+				curHostConfig[i] = getNumberOfPes() - usedPes;
+			else if(i==1)
+				curHostConfig[i] = getRamProvisioner().getAvailableRam();
+			else if(i==2)
+				curHostConfig[i] = (int) getStorage();
+		}
+		//最后一位记录访问数
+		int[] maxN = new int[GlobalParameter.VM_TYPES+1];
+		
+		for(int j=0;j<GlobalParameter.VM_TYPES;j++)
+		{
+			
+			
+			int max = Integer.MAX_VALUE;
+			
+			int cpu = GlobalParameter.VM_PES[j];
+			int mem = GlobalParameter.VM_RAM[j];
+			for(int i=0 ; i<GlobalParameter.HOST_RESOURCES;i++)
+			{
+				int n = 0 ;
+				if(i==0)
+					n = curHostConfig[i] / cpu;
+				else if(i==1)
+					n = curHostConfig[i] / mem;
+				if(n<max)
+				{
+					max = n;
+				}
+					
+			}
+			maxN[j] = max;
+		}
+
+		
+
+
+		int[] res = new int[maxN.length-1];
+	   	int size = 1;
+    	for (int k=0 ;k< maxN.length-1;k++) {
+			size*=(maxN[k]+1);
+		}
+    	ArrayList<int []> list = new ArrayList<int[]>();
+    	
+		dfs(list,res, maxN, 0, size);
+		
+		if(list.size()==0) {
+			
+			return;
+		}
+	
+		int []lastConfig = new int[res.length];
+		lastConfig[0] = Integer.MAX_VALUE;
+		for (int[] config : list) {
+			
+			if(MathUtil.arrayCompare(config,lastConfig)){
+				continue;
+			}
+			
+			int cpu = 0;
+			int mem = 0;
+			for (int k = 0; k < config.length; k++) {
+				cpu+=config[k]*GlobalParameter.VM_PES[k];
+				mem+=config[k]*GlobalParameter.VM_RAM[k];
+			}
+			if( (cpu <= curHostConfig[0]) &&  (mem <= curHostConfig[1])  )
+			{
+				curVmAvailableConfig.add(config);
+				lastConfig[0] = Integer.MAX_VALUE;
+			}
+			else
+				lastConfig = config;
+			
+		}
+
+		
+			
+	
+		
+		
+	}
+	/**
+	 * 深度优先搜索
+	 * @param result
+	 * @param res
+	 * @param a
+	 * @param cnt
+	 * @param size
+	 */
+	public  void dfs(ArrayList<int []> result, int[] res,int[] a,int cnt,int size)
+	{
+		if(a[a.length-1]==size) return;
+		if(cnt == a.length-1) {
+				
+//				MathUtil.printArray(res,res.length);
+				
+				int count = 0;
+				for(int i=0;i<res.length;i++)
+				{
+					count+=res[i];
+				}
+				if(count>0){
+					result.add(res.clone());
+				}
+				
+				a[a.length-1]++;
+				return;
+		}
+		
+		for(int i=0;i<=a[cnt];i++){
+			res[cnt] = i;
+			dfs(result, res, a, cnt+1, size);
 		}
 	}
 

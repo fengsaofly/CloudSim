@@ -91,6 +91,24 @@ public class MathUtil {
 		return aBigger;
 		
 	}
+	
+	public static boolean arrayCompare(int []a,int [] b)
+	{
+		boolean aBigger = true;
+		if(a.length != b.length) return false;
+		
+		for (int i = 0; i < a.length; i++) {
+			if(a[i] < b[i] ){
+				aBigger = false;
+				break;
+			}
+			
+		}
+		
+		return aBigger;
+		
+	}
+	
 	/**
 	 * Gets the median.
 	 * 
@@ -323,6 +341,28 @@ public class MathUtil {
 			result[i] = Math.abs(data[i]);
 		}
 		return result;
+	}
+	public static void dfs(int[] res,int[] a,int cnt,int size)
+	{
+		if(res[a.length]==size) return;
+		if(cnt == a.length) {
+				
+				printArray(res,res.length-1);
+				res[a.length]++;
+				return;
+		}
+		
+		for(int i=0;i<=a[cnt];i++){
+			res[cnt] = i;
+			dfs(res, a, cnt+1, size);
+		}
+	}
+	public static void printArray(int[] a,int n)
+	{
+		for (int i = 0; i < n; i++) {
+			System.out.print(" "+a[i]);
+		}
+		System.out.println();
 	}
 
 }

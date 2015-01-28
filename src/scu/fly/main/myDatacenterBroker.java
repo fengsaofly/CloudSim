@@ -151,7 +151,9 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 	 */
 	protected void processCloudletReturn(SimEvent ev) {
 		woCloudlet cloudlet = (woCloudlet) ev.getData();
-		Vm vm = cloudlet.getVm();
+		myVm vm = cloudlet.getVm();
+		//设置等待时间
+		cloudlet.setWaitTime(CloudSim.clock()-vm.getSubmitTime());
 		getCloudletReceivedList().add(cloudlet);
 		Log.printLine(CloudSim.clock() + ": " + getName() + ": Cloudlet "
 				+ cloudlet.getCloudletId() + " received");
@@ -362,11 +364,13 @@ public class myDatacenterBroker extends DatacenterBrokerSimple {
 		
 		
 		for (Vm vm : curVMList) {
-			if (!getVmsToDatacentersMap().containsKey(vm.getId())) {
+			myVm myVm = (myVm)vm;
+			myVm.setSubmitTime(CloudSim.clock());
+			if (!getVmsToDatacentersMap().containsKey(myVm.getId())) {
 				Log.printLine(CloudSim.clock() + ": " + getName()
-						+ ": Trying to Create VM #" + vm.getId() + " in "
+						+ ": Trying to Create VM #" + myVm.getId() + " in "
 						+ datacenterName);
-				sendNow(datacenterId, CloudSimTags.VM_CREATE_ACK, vm);
+				sendNow(datacenterId, CloudSimTags.VM_CREATE_ACK, myVm);
 				requestedVms++;
 			}
 		}
